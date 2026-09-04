@@ -19,7 +19,7 @@ RUN apk upgrade --no-cache \
     coreutils \
     curl
 
-COPY --chmod=0755 container/k8s/install-kind.sh /usr/local/bin/install-kind
+COPY --chmod=0755 containers/k8s/install-kind.sh /usr/local/bin/install-kind
 
 RUN INSTALL_DIR=/opt/k8s/bin \
     KIND_VERSION="${KIND_VERSION}" \
@@ -32,7 +32,7 @@ FROM alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6ee
 LABEL org.opencontainers.image.title="Kubernetes toolchain" \
     org.opencontainers.image.description="Pinned Kubernetes command-line toolchain for local and CI workflows" \
     org.opencontainers.image.source="https://github.com/sentenz/container" \
-    org.opencontainers.image.documentation="https://github.com/sentenz/container/tree/main/container/k8s" \
+    org.opencontainers.image.documentation="https://github.com/sentenz/container/tree/main/containers/k8s" \
     org.opencontainers.image.licenses="Apache-2.0" \
     org.opencontainers.image.vendor="sentenz" \
     io.k8s.tools.selection="kubectl,kustomize,kind,helm"

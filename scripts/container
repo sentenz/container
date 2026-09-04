@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 
 readonly repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly catalog_file="${repository_root}/container/images.json"
+readonly catalog_file="${repository_root}/containers/images.json"
 
 usage() {
   cat <<'EOF'
@@ -37,7 +37,7 @@ validate_catalog() {
     all(.images[];
       (.name | type == "string" and test("^[a-z0-9]+([._-][a-z0-9]+)*$")) and
       (.description | type == "string" and length > 0) and
-      (.file == ("container/" + .name + "/Containerfile")) and
+      (.file == ("containers/" + .name + "/Containerfile")) and
       (.platforms | type == "array" and length > 0) and
       all(.platforms[]; . == "linux/amd64" or . == "linux/arm64") and
       ((.platforms | length) == (.platforms | unique | length))
@@ -52,7 +52,7 @@ validate_catalog() {
         || fail "${image_name}: Containerfile not found: ${containerfile}"
     done
 
-  for containerfile_path in "${repository_root}"/container/*/Containerfile; do
+  for containerfile_path in "${repository_root}"/containers/*/Containerfile; do
     [[ -e "${containerfile_path}" ]] || continue
     relative_path="${containerfile_path#"${repository_root}/"}"
     jq -e --arg file "${relative_path}" \

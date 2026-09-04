@@ -24,7 +24,7 @@ To select a Kind release:
 ```bash
 docker build \
   --build-arg KIND_VERSION=v0.32.0 \
-  --file container/k8s/Containerfile \
+  --file containers/k8s/Containerfile \
   --tag ghcr.io/sentenz/k8s:dev \
   .
 ```

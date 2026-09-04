@@ -5,7 +5,7 @@
 Centralized, reproducible OCI image definitions for the `sentenz` projects.
 
 Each image owns one operational responsibility and lives below
-`container/<image>/`. Builds always use the repository root as their context, so
+`containers/<image>/`. Builds always use the repository root as their context, so
 an image can consume repository-level sources without weakening Docker's build
 context boundary.
 
@@ -15,7 +15,7 @@ context boundary.
 | --- | --- | --- | --- |
 | `k8s` | Pinned Kubernetes CLI toolchain with kubectl, Kustomize, Kind, and Helm | `linux/amd64`, `linux/arm64` | `ghcr.io/sentenz/k8s` |
 
-The machine-readable catalog is [`container/images.json`](container/images.json).
+The machine-readable catalog is [`containers/images.json`](containers/images.json).
 It is the source of truth for local builds and the GitHub Actions matrix.
 
 ## Layout
@@ -23,8 +23,9 @@ It is the source of truth for local builds and the GitHub Actions matrix.
 ```text
 .
 ├── .github/workflows/container.yml
-├── container/
+├── containers/
 │   ├── images.json
+│   ├── images.schema.json
 │   └── k8s/
 │       ├── Containerfile
 │       ├── README.md
@@ -38,7 +39,7 @@ It is the source of truth for local builds and the GitHub Actions matrix.
 The Containerfile path and build context are deliberately distinct:
 
 ```bash
-docker build --file container/k8s/Containerfile --tag ghcr.io/sentenz/k8s:dev .
+docker build --file containers/k8s/Containerfile --tag ghcr.io/sentenz/k8s:dev .
 ```
 
 The final `.` keeps the repository root as the build context.
@@ -68,9 +69,9 @@ The equivalent script interface is:
 
 ## Adding an image
 
-1. Create `container/<name>/Containerfile` and keep image-specific support files
+1. Create `containers/<name>/Containerfile` and keep image-specific support files
    in the same directory.
-2. Add the image metadata to `container/images.json`.
+2. Add the image metadata to `containers/images.json`.
 3. Run `make validate` and `make build-<name>`.
 4. Commit the change with a Conventional Commit, for example
    `feat(terraform): add Terraform toolchain image`.

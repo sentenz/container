@@ -5,7 +5,7 @@
     {
       "name": "k8s",
       "description": "Pinned Kubernetes command-line toolchain",
-      "file": "container/k8s/Containerfile",
+      "file": "containers/k8s/Containerfile",
       "platforms": [
         "linux/amd64",
         "linux/arm64"

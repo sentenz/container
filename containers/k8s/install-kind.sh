@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
+# Installs a verified Kind binary for the requested BuildKit target platform.
 
 set -Eeuo pipefail
 umask 022

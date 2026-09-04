@@ -5,7 +5,7 @@ name: Container
 on:
   pull_request:
     paths:
-      - container/**
+      - containers/**
       - scripts/container
       - .dockerignore
       - Makefile
@@ -15,7 +15,7 @@ on:
     branches:
       - main
     paths:
-      - container/**
+      - containers/**
       - scripts/container
       - .dockerignore
       - Makefile
@@ -66,7 +66,7 @@ jobs:
         uses: sentenz/actions/trivy@ed8d725668082b21a56c2d043b6c7b32b5da1c63 # 1.4.5
         with:
           scan-type: config
-          scan-target: container
+          scan-target: containers
           format: table
           severity: HIGH,CRITICAL
           scanners: misconfig
