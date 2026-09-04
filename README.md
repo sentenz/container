@@ -11,11 +11,13 @@ context boundary.
 
 ## Details
 
-- [containers/images.json](containers/images.json)
-  > The repository’s source of truth for image names, Containerfile paths, and supported platforms for local builds and the GitHub Actions matrix.
+1. Catalog-driven
 
-- [containers/images.schema.json](containers/images.schema.json)
-  > A repository-specific JSON Schema validating that catalog, including the `containers/<name>/Containerfile` convention.
+     - [containers/images.json](containers/images.json)
+      > The repository’s source of truth for image names, Containerfile paths, and supported platforms for local builds and the GitHub Actions matrix.
+
+    - [containers/images.schema.json](containers/images.schema.json)
+      > A repository-specific JSON Schema validating that catalog, including the `containers/<name>/Containerfile` convention.
 
 ## Images
 
