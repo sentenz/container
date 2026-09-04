@@ -59,22 +59,22 @@ readonly curl_options=(
 curl "${curl_options[@]}" --output "${temporary_directory}/${asset}" -- "${base_url}/${asset}"
 curl "${curl_options[@]}" --output "${temporary_directory}/${asset}.sha256sum" -- "${base_url}/${asset}.sha256sum"
 
-expected_checksum="$(
-  awk -v expected_name="${asset}" \
-    '$2 == expected_name || $2 == "*" expected_name {print $1; exit}' \
-    "${temporary_directory}/${asset}.sha256sum"
-)"
-readonly expected_checksum
-
-if [[ ! "${expected_checksum}" =~ ^[0-9A-Fa-f]{64}$ ]]; then
+if ! awk -v expected_name="${asset}" '
+  $1 ~ /^[0-9A-Fa-f]{64}$/ && ($2 == expected_name || $2 == "*" expected_name) {
+    found = 1
+  }
+  END {
+    exit found ? 0 : 1
+  }
+' "${temporary_directory}/${asset}.sha256sum"; then
   printf 'install-kind: invalid checksum manifest for %s\n' "${asset}" >&2
   exit 1
 fi
 
-actual_checksum="$(sha256sum "${temporary_directory}/${asset}" | awk '{print $1}')"
-readonly actual_checksum
-
-if [[ "${actual_checksum,,}" != "${expected_checksum,,}" ]]; then
+if ! (
+  cd -- "${temporary_directory}"
+  sha256sum --check --status -- "${asset}.sha256sum"
+); then
   printf 'install-kind: checksum mismatch for %s\n' "${asset}" >&2
   exit 1
 fi

@@ -31,10 +31,11 @@ validate:
 	@./scripts/container validate
 .PHONY: validate
 
-## Validate the supply-chain policy with Conftest and generate a report
+## Verify and evaluate the supply-chain policy with Conftest
 policy:
 	@./scripts/policy-inputs
 	@mkdir -p logs/policy
+	@$(POLICY_CONFTEST_ALIAS) verify --policy ./tests/policy
 	@$(POLICY_CONFTEST_ALIAS) test . 2>&1 | tee logs/policy/conftest-report.json
 .PHONY: policy
 

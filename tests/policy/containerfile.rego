@@ -51,6 +51,15 @@ final_stage := max([command.Stage | some command in input]) if {
 	is_containerfile
 }
 
+final_stage_from_index := min([index |
+	some index
+	command := input[index]
+	command.Cmd == "from"
+	command.Stage == final_stage
+]) if {
+	is_containerfile
+}
+
 final_user_indices := [index |
 	some index
 	command := input[index]
@@ -58,25 +67,61 @@ final_user_indices := [index |
 	command.Stage == final_stage
 ]
 
+user_variable_name(value) := trim_suffix(trim_prefix(value, "${"), "}") if {
+	regex.match(`^\$\{[A-Za-z_][A-Za-z0-9_]*\}$`, value)
+}
+
+user_variable_name(value) := trim_prefix(value, "$") if {
+	regex.match(`^\$[A-Za-z_][A-Za-z0-9_]*$`, value)
+}
+
+arg_default(name, before_index) := value if {
+	prefix := sprintf("%s=", [name])
+	indices := [index |
+		some index
+		command := input[index]
+		command.Cmd == "arg"
+		command.Stage == final_stage
+		index > final_stage_from_index
+		index < before_index
+		some argument in command.Value
+		startswith(argument, prefix)
+	]
+	count(indices) > 0
+
+	latest_index := max(indices)
+	some argument in input[latest_index].Value
+	startswith(argument, prefix)
+	value := trim(trim_prefix(argument, prefix), `"'`)
+}
+
+resolved_user_identity(user, user_index) := identity if {
+	identity := split(user, ":")[0]
+	not startswith(identity, "$")
+}
+
+resolved_user_identity(user, user_index) := value if {
+	identity := split(user, ":")[0]
+	name := user_variable_name(identity)
+	value := arg_default(name, user_index)
+	value != ""
+}
+
+has_resolved_user_identity(user, user_index) if {
+	resolved_user_identity(user, user_index) != ""
+}
+
 is_root_user(user) if {
 	lower(user) == "root"
 }
 
 is_root_user(user) if {
-	lower(user) == "0"
-}
-
-is_root_user(user) if {
-	startswith(lower(user), "root:")
-}
-
-is_root_user(user) if {
-	startswith(lower(user), "0:")
+	regex.match(`^0+$`, user)
 }
 
 # METADATA
 # title: Unprivileged runtime user
-# description: Require the final image stage to select a non-root runtime user.
+# description: Require the final image stage to select a provably non-root runtime user.
 # custom:
 #   severity: high
 # entrypoint: true
@@ -92,7 +137,20 @@ deny_runtime_user contains msg if {
 	count(final_user_indices) > 0
 	last_user_index := max(final_user_indices)
 	user := input[last_user_index].Value[0]
-	is_root_user(user)
+	identity := split(user, ":")[0]
+	startswith(identity, "$")
+	not has_resolved_user_identity(user, last_user_index)
+
+	msg := sprintf("The final image stage user %q must resolve from a preceding ARG default.", [user])
+}
+
+deny_runtime_user contains msg if {
+	is_containerfile
+	count(final_user_indices) > 0
+	last_user_index := max(final_user_indices)
+	user := input[last_user_index].Value[0]
+	identity := resolved_user_identity(user, last_user_index)
+	is_root_user(identity)
 
 	msg := sprintf("The final image stage must not run as %q.", [user])
 }

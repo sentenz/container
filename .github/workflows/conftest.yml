@@ -30,6 +30,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  POLICY_CONFTEST_IMAGE: docker.io/openpolicyagent/conftest:v0.69.0@sha256:a38ba21668929a00dce2fe6ee43d1312228340bce5fd243f47dd0ce90516e558
+
 jobs:
   policy:
     name: Conftest Action
@@ -44,12 +47,22 @@ jobs:
       - name: Prepare policy inputs
         run: ./scripts/policy-inputs
 
+      - name: Verify policy tests
+        run: >-
+          docker run --rm
+          --volume "${PWD}:/workspace"
+          --workdir /workspace
+          "${POLICY_CONFTEST_IMAGE}"
+          verify
+          --policy ./tests/policy
+
       - name: Run Conftest
         uses: sentenz/actions/conftest@48302ad4cbb2e77116d2666bbad2821e74dd5ada # 1.4.8
         with:
           path: "."
           policy-path: "./tests/policy"
           config-file: "./conftest.toml"
+          image: ${{ env.POLICY_CONFTEST_IMAGE }}
           output-format: "github"
           fail-on-warn: "true"
           all-namespaces: "false"

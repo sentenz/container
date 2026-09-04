@@ -46,6 +46,7 @@ context boundary.
 │   ├── containerfile.rego
 │   ├── downloads.rego
 │   ├── github_actions.rego
+│   ├── policy_test.rego
 │   └── renovate.rego
 ├── .dockerignore
 ├── conftest.toml
@@ -123,7 +124,9 @@ Release tags must also be valid OCI tags, such as `1.2.3` or `v1.2.3`.
 [Conftest](https://www.conftest.dev/) enforces these controls for Containerfiles,
 download scripts, GitHub Actions workflows, and Renovate configuration. The Rego
 policies live in [`tests/policy`](tests/policy) and use
-[`conftest.toml`](conftest.toml).
+[`conftest.toml`](conftest.toml). `make policy` first runs the Rego unit tests,
+then evaluates the repository inputs and writes the JSON report to
+`logs/policy/conftest-report.json`.
 
 ## License
 
