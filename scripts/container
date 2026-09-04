@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+
+set -Eeuo pipefail
+
+readonly repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly catalog_file="${repository_root}/container/images.json"
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/container <command> [image ...]
+
+Commands:
+  list              List catalog images
+  validate          Validate the catalog and repository layout
+  build [image ...] Build selected images, or every image when omitted
+  matrix            Print the GitHub Actions build matrix as compact JSON
+EOF
+}
+
+fail() {
+  printf 'container: error: %s\n' "$*" >&2
+  exit 1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
+}
+
+validate_catalog() {
+  require_command jq
+  [[ -f "${catalog_file}" ]] || fail "catalog not found: ${catalog_file}"
+
+  jq -e '
+    (.schemaVersion == 1) and
+    (.images | type == "array" and length > 0) and
+    all(.images[];
+      (.name | type == "string" and test("^[a-z0-9]+([._-][a-z0-9]+)*$")) and
+      (.description | type == "string" and length > 0) and
+      (.file == ("container/" + .name + "/Containerfile")) and
+      (.platforms | type == "array" and length > 0) and
+      all(.platforms[]; . == "linux/amd64" or . == "linux/arm64") and
+      ((.platforms | length) == (.platforms | unique | length))
+    ) and
+    (([.images[].name] | length) == ([.images[].name] | unique | length)) and
+    (([.images[].file] | length) == ([.images[].file] | unique | length))
+  ' "${catalog_file}" >/dev/null || fail "catalog structure is invalid"
+
+  jq -r '.images[] | [.name, .file] | @tsv' "${catalog_file}" |
+    while IFS=$'\t' read -r image_name containerfile; do
+      [[ -f "${repository_root}/${containerfile}" ]] \
+        || fail "${image_name}: Containerfile not found: ${containerfile}"
+    done
+
+  for containerfile_path in "${repository_root}"/container/*/Containerfile; do
+    [[ -e "${containerfile_path}" ]] || continue
+    relative_path="${containerfile_path#"${repository_root}/"}"
+    jq -e --arg file "${relative_path}" \
+      'any(.images[]; .file == $file)' "${catalog_file}" >/dev/null \
+      || fail "Containerfile is missing from catalog: ${relative_path}"
+  done
+
+  printf 'container: catalog and layout are valid\n' >&2
+}
+
+list_images() {
+  require_command jq
+  jq -r '
+    ["IMAGE", "PLATFORMS", "DESCRIPTION"],
+    (.images[] | [.name, (.platforms | join(",")), .description]) |
+    @tsv
+  ' "${catalog_file}"
+}
+
+build_image() {
+  local image_name="$1"
+  local containerfile
+  local engine="${CONTAINER_ENGINE:-docker}"
+  local registry="${CONTAINER_REGISTRY:-ghcr.io/sentenz}"
+  local tag="${CONTAINER_TAG:-dev}"
+  local -a build_arguments
+
+  containerfile="$(
+    jq -er --arg name "${image_name}" \
+      '.images[] | select(.name == $name) | .file' "${catalog_file}"
+  )" || fail "unknown image: ${image_name}"
+
+  require_command "${engine}"
+
+  build_arguments=(
+    build
+    --file "${repository_root}/${containerfile}"
+    --tag "${registry}/${image_name}:${tag}"
+  )
+
+  if [[ -n "${CONTAINER_PLATFORM:-}" ]]; then
+    build_arguments+=(--platform "${CONTAINER_PLATFORM}")
+  fi
+
+  build_arguments+=("${repository_root}")
+
+  printf 'container: building %s/%s:%s\n' "${registry}" "${image_name}" "${tag}" >&2
+  "${engine}" "${build_arguments[@]}"
+}
+
+build_images() {
+  validate_catalog
+
+  if (( $# == 0 )); then
+    jq -r '.images[].name' "${catalog_file}" |
+      while IFS= read -r image_name; do
+        build_image "${image_name}"
+      done
+    return
+  fi
+
+  for image_name in "$@"; do
+    build_image "${image_name}"
+  done
+}
+
+print_matrix() {
+  validate_catalog
+  jq -c '{
+    include: [
+      .images[] |
+      {
+        name: .name,
+        file: .file,
+        platforms: (.platforms | join(","))
+      }
+    ]
+  }' "${catalog_file}"
+}
+
+main() {
+  local command_name="${1:-}"
+  [[ -n "${command_name}" ]] || {
+    usage
+    exit 2
+  }
+  shift
+
+  case "${command_name}" in
+    list)
+      (( $# == 0 )) || fail "list does not accept image arguments"
+      list_images
+      ;;
+    validate)
+      (( $# == 0 )) || fail "validate does not accept image arguments"
+      validate_catalog
+      ;;
+    build)
+      build_images "$@"
+      ;;
+    matrix)
+      (( $# == 0 )) || fail "matrix does not accept image arguments"
+      print_matrix
+      ;;
+    help | --help | -h)
+      usage
+      ;;
+    *)
+      usage >&2
+      fail "unknown command: ${command_name}"
+      ;;
+  esac
+}
+
+main "$@"

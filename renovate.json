@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "minimumReleaseAge": "1 day",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
+  "internalChecksFilter": "strict",
+  "dependencyDashboard": true,
+  "labels": [
+    "dependencies"
+  ],
+  "packageRules": [
+    {
+      "description": "Pin and group Containerfile base image updates.",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "pinDigests": true,
+      "groupName": "container base images",
+      "groupSlug": "container-base-images",
+      "automerge": false
+    },
+    {
+      "description": "Keep GitHub Actions pinned to immutable revisions.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "pinDigests": true,
+      "automerge": false
+    }
+  ]
+}
