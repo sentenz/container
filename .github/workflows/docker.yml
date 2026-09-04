@@ -10,7 +10,7 @@ on:
       - .dockerignore
       - Makefile
       - renovate.json
-      - .github/workflows/container.yml
+      - .github/workflows/docker.yml
   push:
     branches:
       - main
@@ -20,7 +20,7 @@ on:
       - .dockerignore
       - Makefile
       - renovate.json
-      - .github/workflows/container.yml
+      - .github/workflows/docker.yml
   release:
     types: [published]
   workflow_dispatch:

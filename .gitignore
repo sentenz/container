@@ -4,6 +4,7 @@
 .env.*
 !.env.example
 
+.conftest-inputs/
 .local/
 artifacts/
 coverage/

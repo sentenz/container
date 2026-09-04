@@ -1,6 +1,6 @@
 # Container
 
-[![Container](https://github.com/sentenz/container/actions/workflows/container.yml/badge.svg)](https://github.com/sentenz/container/actions/workflows/container.yml)
+[![Container](https://github.com/sentenz/container/actions/workflows/docker.yml/badge.svg)](https://github.com/sentenz/container/actions/workflows/docker.yml)
 
 Centralized, reproducible OCI image definitions for the `sentenz` projects.
 
@@ -29,7 +29,9 @@ context boundary.
 
 ```text
 .
-├── .github/workflows/container.yml
+├── .github/workflows/
+│   ├── conftest.yml
+│   └── docker.yml
 ├── containers/
 │   ├── images.json
 │   ├── images.schema.json
@@ -37,8 +39,17 @@ context boundary.
 │       ├── Containerfile
 │       ├── README.md
 │       └── install-kind.sh
-├── scripts/container
+├── scripts/
+│   ├── container
+│   └── policy-inputs
+├── tests/policy/
+│   ├── containerfile.rego
+│   ├── downloads.rego
+│   ├── github_actions.rego
+│   ├── policy_test.rego
+│   └── renovate.rego
 ├── .dockerignore
+├── conftest.toml
 ├── Makefile
 └── renovate.json
 ```
@@ -59,6 +70,7 @@ with `CONTAINER_ENGINE`.
 ```bash
 make list
 make validate
+make policy
 make build
 make build-k8s
 
@@ -108,6 +120,13 @@ Release tags must also be valid OCI tags, such as `1.2.3` or `v1.2.3`.
 - Runtime images use an unprivileged user.
 - Renovate keeps pinned dependencies current without replacing immutable pins
   with mutable tags.
+
+[Conftest](https://www.conftest.dev/) enforces these controls for Containerfiles,
+download scripts, GitHub Actions workflows, and Renovate configuration. The Rego
+policies live in [`tests/policy`](tests/policy) and use
+[`conftest.toml`](conftest.toml). `make policy` first runs the Rego unit tests,
+then evaluates the repository inputs and writes the JSON report to
+`logs/policy/conftest-report.json`.
 
 ## License
 
