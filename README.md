@@ -9,6 +9,14 @@ Each image owns one operational responsibility and lives below
 an image can consume repository-level sources without weakening Docker's build
 context boundary.
 
+## Details
+
+- `containers/images.json`
+  > The repository’s source of truth for image names, Containerfile paths, and supported platforms. Both local tooling and CI derive their build matrix from it.
+
+- `containers/images.schema.json`
+  > A repository-specific JSON Schema validating that catalog, including the `containers/<name>/Containerfile` convention.
+
 ## Images
 
 | Image | Purpose | Platforms | Package |
