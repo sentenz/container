@@ -1,6 +1,6 @@
 # Container
 
-[![Container](https://github.com/sentenz/container/actions/workflows/container.yml/badge.svg)](https://github.com/sentenz/container/actions/workflows/container.yml)
+[![Container](https://github.com/sentenz/container/actions/workflows/docker.yml/badge.svg)](https://github.com/sentenz/container/actions/workflows/docker.yml)
 
 Centralized, reproducible OCI image definitions for the `sentenz` projects.
 
@@ -31,7 +31,7 @@ context boundary.
 .
 ├── .github/workflows/
 │   ├── conftest.yml
-│   └── container.yml
+│   └── docker.yml
 ├── containers/
 │   ├── images.json
 │   ├── images.schema.json
