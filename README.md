@@ -11,10 +11,10 @@ context boundary.
 
 ## Details
 
-- `containers/images.json`
-  > The repository’s source of truth for image names, Containerfile paths, and supported platforms. Both local tooling and CI derive their build matrix from it.
+- [containers/images.json](containers/images.json).
+  > The repository’s source of truth for image names, Containerfile paths, and supported platforms for local builds and the GitHub Actions matrix.
 
-- `containers/images.schema.json`
+- [containers/images.schema.json](containers/images.schema.json).
   > A repository-specific JSON Schema validating that catalog, including the `containers/<name>/Containerfile` convention.
 
 ## Images
@@ -22,9 +22,6 @@ context boundary.
 | Image | Purpose | Platforms | Package |
 | --- | --- | --- | --- |
 | `k8s` | Pinned Kubernetes CLI toolchain with kubectl, Kustomize, Kind, and Helm | `linux/amd64`, `linux/arm64` | `ghcr.io/sentenz/k8s` |
-
-The machine-readable catalog is [`containers/images.json`](containers/images.json).
-It is the source of truth for local builds and the GitHub Actions matrix.
 
 ## Layout
 
