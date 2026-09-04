@@ -6,7 +6,9 @@ SHELL := bash
 CONTAINER_ENGINE ?= docker
 CONTAINER_REGISTRY ?= ghcr.io/sentenz
 CONTAINER_TAG ?= dev
-CONFTEST ?= conftest
+
+POLICY_CONFTEST_IMAGE ?= docker.io/openpolicyagent/conftest:v0.69.0@sha256:a38ba21668929a00dce2fe6ee43d1312228340bce5fd243f47dd0ce90516e558
+POLICY_CONFTEST_ALIAS := docker run --rm --volume "$(CURDIR):/workspace" --workdir /workspace "$(POLICY_CONFTEST_IMAGE)"
 
 export CONTAINER_ENGINE
 export CONTAINER_REGISTRY
@@ -29,10 +31,11 @@ validate:
 	@./scripts/container validate
 .PHONY: validate
 
-## Validate the supply-chain policy with Conftest
+## Validate the supply-chain policy with Conftest and generate a report
 policy:
 	@./scripts/policy-inputs
-	@$(CONFTEST) test .
+	@mkdir -p logs/policy
+	@$(POLICY_CONFTEST_ALIAS) test . 2>&1 | tee logs/policy/conftest-report.json
 .PHONY: policy
 
 ## Build every catalog image
