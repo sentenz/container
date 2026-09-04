@@ -13,7 +13,7 @@ context boundary.
 
 1. Catalog-driven
 
-     - [containers/images.json](containers/images.json)
+    - [containers/images.json](containers/images.json)
       > The repository’s source of truth for image names, Containerfile paths, and supported platforms for local builds and the GitHub Actions matrix.
 
     - [containers/images.schema.json](containers/images.schema.json)
