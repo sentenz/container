@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Conftest
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/**
+      - containers/**
+      - scripts/policy-inputs
+      - tests/policy/**
+      - conftest.toml
+      - renovate.json
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/**
+      - containers/**
+      - scripts/policy-inputs
+      - tests/policy/**
+      - conftest.toml
+      - renovate.json
+  workflow_dispatch:
+
+concurrency:
+  group: conftest-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    name: Supply-chain policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare policy inputs
+        run: ./scripts/policy-inputs
+
+      - name: Run Conftest
+        uses: sentenz/actions/conftest@48302ad4cbb2e77116d2666bbad2821e74dd5ada # 1.4.8
+        with:
+          path: "."
+          policy-path: "./tests/policy"
+          config-file: "./conftest.toml"
+          output-format: "github"
+          fail-on-warn: "true"
+          all-namespaces: "false"

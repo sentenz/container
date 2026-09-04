@@ -7,6 +7,7 @@ Before opening a pull request:
 
 ```bash
 make validate
+make policy
 make build
 ```
 

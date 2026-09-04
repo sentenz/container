@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+
+set -Eeuo pipefail
+
+readonly repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly input_directory="${repository_root}/.conftest-inputs"
+
+fail() {
+  printf 'policy-inputs: error: %s\n' "$*" >&2
+  exit 1
+}
+
+command -v jq >/dev/null 2>&1 || fail "required command not found: jq"
+
+if [[ -e "${input_directory}" && ! -d "${input_directory}" ]]; then
+  fail "input path is not a directory: ${input_directory}"
+fi
+
+mkdir -p -- "${input_directory}"
+find "${input_directory}" -mindepth 1 -depth -delete
+
+find "${repository_root}/containers" -type f -name Containerfile -print0 |
+  while IFS= read -r -d '' containerfile; do
+    relative_path="${containerfile#"${repository_root}/"}"
+    destination="${input_directory}/${relative_path}.Dockerfile"
+    mkdir -p -- "$(dirname -- "${destination}")"
+    cp -- "${containerfile}" "${destination}"
+  done
+
+find "${repository_root}/containers" -type f -name '*.sh' -print0 |
+  while IFS= read -r -d '' shell_script; do
+    relative_path="${shell_script#"${repository_root}/"}"
+    destination="${input_directory}/${relative_path}.json"
+    mkdir -p -- "$(dirname -- "${destination}")"
+    jq --raw-input --slurp --arg path "${relative_path}" \
+      '{kind: "ShellScript", path: $path, content: .}' \
+      "${shell_script}" > "${destination}"
+  done
+
+printf 'policy-inputs: prepared Conftest inputs\n' >&2

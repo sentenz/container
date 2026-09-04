@@ -6,6 +6,7 @@ SHELL := bash
 CONTAINER_ENGINE ?= docker
 CONTAINER_REGISTRY ?= ghcr.io/sentenz
 CONTAINER_TAG ?= dev
+CONFTEST ?= conftest
 
 export CONTAINER_ENGINE
 export CONTAINER_REGISTRY
@@ -27,6 +28,12 @@ list:
 validate:
 	@./scripts/container validate
 .PHONY: validate
+
+## Validate the supply-chain policy with Conftest
+policy:
+	@./scripts/policy-inputs
+	@$(CONFTEST) test .
+.PHONY: policy
 
 ## Build every catalog image
 build:

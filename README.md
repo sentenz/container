@@ -29,7 +29,9 @@ context boundary.
 
 ```text
 .
-├── .github/workflows/container.yml
+├── .github/workflows/
+│   ├── conftest.yml
+│   └── container.yml
 ├── containers/
 │   ├── images.json
 │   ├── images.schema.json
@@ -37,8 +39,16 @@ context boundary.
 │       ├── Containerfile
 │       ├── README.md
 │       └── install-kind.sh
-├── scripts/container
+├── scripts/
+│   ├── container
+│   └── policy-inputs
+├── tests/policy/
+│   ├── containerfile.rego
+│   ├── downloads.rego
+│   ├── github_actions.rego
+│   └── renovate.rego
 ├── .dockerignore
+├── conftest.toml
 ├── Makefile
 └── renovate.json
 ```
@@ -59,6 +69,7 @@ with `CONTAINER_ENGINE`.
 ```bash
 make list
 make validate
+make policy
 make build
 make build-k8s
 
@@ -108,6 +119,11 @@ Release tags must also be valid OCI tags, such as `1.2.3` or `v1.2.3`.
 - Runtime images use an unprivileged user.
 - Renovate keeps pinned dependencies current without replacing immutable pins
   with mutable tags.
+
+[Conftest](https://www.conftest.dev/) enforces these controls for Containerfiles,
+download scripts, GitHub Actions workflows, and Renovate configuration. The Rego
+policies live in [`tests/policy`](tests/policy) and use
+[`conftest.toml`](conftest.toml).
 
 ## License
 
