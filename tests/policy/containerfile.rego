@@ -97,7 +97,7 @@ arg_default(name, before_index) := value if {
 
 resolved_user_identity(user, user_index) := identity if {
 	identity := split(user, ":")[0]
-	not startswith(identity, "$")
+	not contains(identity, "$")
 }
 
 resolved_user_identity(user, user_index) := value if {
@@ -105,6 +105,7 @@ resolved_user_identity(user, user_index) := value if {
 	name := user_variable_name(identity)
 	value := arg_default(name, user_index)
 	value != ""
+	not contains(value, "$")
 }
 
 has_resolved_user_identity(user, user_index) if {
@@ -138,7 +139,7 @@ deny_runtime_user contains msg if {
 	last_user_index := max(final_user_indices)
 	user := input[last_user_index].Value[0]
 	identity := split(user, ":")[0]
-	startswith(identity, "$")
+	contains(identity, "$")
 	not has_resolved_user_identity(user, last_user_index)
 
 	msg := sprintf("The final image stage user %q must resolve from a preceding ARG default.", [user])

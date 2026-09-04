@@ -82,3 +82,48 @@ test_runtime_user_rejects_unresolved_variable if {
 	result := deny_runtime_user with input as candidate
 	count(result) == 1
 }
+
+test_runtime_user_rejects_chained_arg_default if {
+	candidate := [
+		{"Cmd": "from", "Stage": 0, "Value": ["scratch"]},
+		{"Cmd": "arg", "Stage": 0, "Value": ["BASE_UID=0"]},
+		{"Cmd": "arg", "Stage": 0, "Value": ["USER_UID=${BASE_UID}"]},
+		{"Cmd": "user", "Stage": 0, "Value": ["${USER_UID}"]},
+	]
+	result := deny_runtime_user with input as candidate
+	count(result) == 1
+}
+
+test_base_image_rejects_mutable_reference if {
+	candidate := [
+		{"Cmd": "from", "Stage": 0, "Value": ["alpine:3.24"]},
+	]
+	result := deny_base_image_pinning with input as candidate
+	count(result) == 1
+}
+
+test_github_action_rejects_mutable_reference if {
+	candidate := {
+		"on": {"push": {}},
+		"jobs": {
+			"test": {
+				"steps": [
+					{"name": "Checkout", "uses": "actions/checkout@v7"},
+				],
+			},
+		},
+	}
+	result := deny_github_action_pinning with input as candidate
+	count(result) == 1
+}
+
+test_renovate_rejects_missing_manager_pin if {
+	candidate := {
+		"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+		"packageRules": [
+			{"matchManagers": ["dockerfile"], "pinDigests": true},
+		],
+	}
+	result := deny_renovate_pinning with input as candidate
+	count(result) == 1
+}
