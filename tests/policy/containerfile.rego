@@ -52,8 +52,7 @@ final_stage := max([command.Stage | some command in input]) if {
 }
 
 final_stage_from_index := min([index |
-	some index
-	command := input[index]
+	some index, command in input
 	command.Cmd == "from"
 	command.Stage == final_stage
 ]) if {
@@ -61,8 +60,7 @@ final_stage_from_index := min([index |
 }
 
 final_user_indices := [index |
-	some index
-	command := input[index]
+	some index, command in input
 	command.Cmd == "user"
 	command.Stage == final_stage
 ]
@@ -78,8 +76,7 @@ user_variable_name(value) := trim_prefix(value, "$") if {
 arg_default(name, before_index) := value if {
 	prefix := sprintf("%s=", [name])
 	indices := [index |
-		some index
-		command := input[index]
+		some index, command in input
 		command.Cmd == "arg"
 		command.Stage == final_stage
 		index > final_stage_from_index

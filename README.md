@@ -31,7 +31,11 @@ context boundary.
 .
 ├── .github/workflows/
 │   ├── conftest.yml
-│   └── docker.yml
+│   ├── docker.yml
+│   ├── regal.yml
+│   ├── renovate.yml
+│   ├── semgrep.yml
+│   └── trivy.yml
 ├── containers/
 │   ├── images.json
 │   ├── images.schema.json
@@ -49,6 +53,7 @@ context boundary.
 │   ├── policy_test.rego
 │   └── renovate.rego
 ├── .dockerignore
+├── .regal/config.yaml
 ├── conftest.toml
 ├── Makefile
 └── renovate.json
@@ -112,6 +117,45 @@ The `Container` workflow uses immutable revisions of actions from
   only to the release publishing job.
 
 Release tags must also be valid OCI tags, such as `1.2.3` or `v1.2.3`.
+
+Repository checks and maintenance use pinned composite actions from the same
+repository:
+
+| Workflow | Checks | Triggers |
+| --- | --- | --- |
+| `Conftest` | Supply-chain policy enforcement | Relevant pull requests, changes to `main`, manual runs |
+| `Regal` | Rego policy and unit-test linting | Policy, Regal configuration, or workflow changes; manual runs |
+| `Semgrep` | GitHub Actions security rules | Workflow or ignore-file changes; manual runs |
+| `Trivy` | Repository dependency vulnerabilities and secrets at HIGH or CRITICAL severity | Pull requests, changes to `main`, Mondays at 04:23 UTC, manual runs |
+| `Renovate` | Updates to pinned dependencies, scoped to this repository | Mondays at 04:41 UTC or manual runs, when enabled |
+
+Semgrep uses the `p/github-actions` registry rule set with metrics disabled.
+Findings, scan errors, and scans with no targets fail the job. Semgrep JSON/SARIF
+reports and the Trivy JSON report are retained as workflow artifacts for 14 days,
+including when findings fail a scan. These checks require only `contents: read`
+and run without repository secrets. The filesystem scan complements the
+Container workflow's image-definition checks; it does not scan built images.
+
+Regal uses [`.regal/config.yaml`](.regal/config.yaml). The configuration retains
+Conftest's shared test namespace and permits Containerfile helpers to access the
+shared parsed input; other default lint rules remain enabled.
+
+### Self-hosted Renovate
+
+The Renovate workflow is opt-in to avoid duplicate runs alongside an installed
+Renovate GitHub App. To use it:
+
+1. Add a repository secret named `RENOVATE_TOKEN` containing a dedicated personal
+   access token scoped to this repository. Use the permissions listed in the
+   [Renovate authentication guidance](https://docs.renovatebot.com/modules/platform/github/),
+   including Workflows read/write access for GitHub Actions updates. The built-in
+   `GITHUB_TOKEN` is not supported by the composite action.
+2. Set the repository Actions variable `RENOVATE_ENABLED` to `true`.
+3. Run the `Renovate` workflow on the default branch or wait for its weekly run.
+
+The workflow reads [`renovate.json`](renovate.json), disables repository
+autodiscovery, and skips execution on a manually selected feature branch.
+Leaving `RENOVATE_ENABLED` unset skips the maintenance job.
 
 ## Supply-chain policy
 

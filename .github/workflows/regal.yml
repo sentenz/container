@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Regal
+
+on:
+  pull_request:
+    paths:
+      - tests/policy/**
+      - .regal/**
+      - .github/workflows/regal.yml
+  push:
+    branches:
+      - main
+    paths:
+      - tests/policy/**
+      - .regal/**
+      - .github/workflows/regal.yml
+  workflow_dispatch:
+
+concurrency:
+  group: regal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Rego policies
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Regal
+        uses: sentenz/actions/regal@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        with:
+          path: ./tests/policy
+          regal-version: v0.42.0
+          config-file: ./.regal/config.yaml
+          output-format: github

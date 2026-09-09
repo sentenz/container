@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Trivy
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: trivy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan repository vulnerabilities and secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Trivy
+        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        with:
+          scan-type: fs
+          scan-target: .
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          format: json
+          output: logs/trivy/results.json
+          skip-dirs: .git,.conftest-inputs,logs
+          exit-code: "1"
+
+      - name: Upload scan report
+        if: ${{ !cancelled() && hashFiles('logs/trivy/results.json') != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trivy-report
+          path: logs/trivy/results.json
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+
+rules:
+  style:
+    external-reference:
+      # Containerfile helpers intentionally share the parsed input and stage data.
+      ignore:
+        files:
+          - tests/policy/containerfile.rego
+  testing:
+    test-outside-test-package:
+      # Conftest unit tests exercise helpers in the same policy namespace.
+      level: ignore

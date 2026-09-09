@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Semgrep
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/**
+      - .gitignore
+      - .semgrepignore
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/**
+      - .gitignore
+      - .semgrepignore
+  workflow_dispatch:
+
+concurrency:
+  group: semgrep-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan GitHub Actions workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare report directory
+        run: mkdir -p logs/semgrep
+
+      - name: Semgrep
+        uses: sentenz/actions/semgrep@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        with:
+          config: p/github-actions
+          include: .github/workflows/**
+          metrics: "off"
+          no-secrets-validation: "true"
+          json-output: logs/semgrep/results.json
+          sarif-output: logs/semgrep/results.sarif
+
+      # The composite action runs `semgrep scan`, which does not fail on findings.
+      - name: Check scan results
+        run: |
+          jq -e '
+            (.errors | type == "array" and length == 0) and
+            (.results | type == "array" and length == 0) and
+            (.paths.scanned | type == "array" and length > 0)
+          ' logs/semgrep/results.json
+
+      - name: Upload scan reports
+        if: ${{ !cancelled() && hashFiles('logs/semgrep/results.json') != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: semgrep-reports
+          path: logs/semgrep/
+          if-no-files-found: error
+          retention-days: 14

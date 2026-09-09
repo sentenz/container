@@ -11,6 +11,12 @@ make policy
 make build
 ```
 
+For policy changes, also run
+`regal lint --config-file .regal/config.yaml tests/policy` with Regal v0.42.0.
+Workflow changes should pass `actionlint`.
+Pull requests run the applicable Conftest, Regal, Semgrep, and Trivy checks;
+scanner reports are available in the workflow artifacts.
+
 Use [Conventional Commits](https://www.conventionalcommits.org/) for commit
 messages. Prefer the image name as the scope for image-specific changes:
 

@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Renovate
+
+on:
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: renovate-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Update pinned dependencies
+    # Enable explicitly when using self-hosted Renovate instead of the hosted app.
+    # Never expose the maintenance token to a manually selected feature branch.
+    if: >-
+      vars.RENOVATE_ENABLED == 'true' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Renovate
+        uses: sentenz/actions/renovate@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+          autodiscover: "false"
+          log-level: info

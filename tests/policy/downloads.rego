@@ -54,9 +54,10 @@ download_targets contains target if {
 
 download_targets contains target if {
 	is_shell_source
+	pattern := `(-O|--output-document)(=|[[:space:]]+)("[^"]+"|'[^']+'|[^[:space:]]+)`
 	some line in shell_lines(input.content)
 	is_wget_command(line)
-	some match in regex.find_all_string_submatch_n(`(-O|--output-document)(=|[[:space:]]+)("[^"]+"|'[^']+'|[^[:space:]]+)`, line, -1)
+	some match in regex.find_all_string_submatch_n(pattern, line, -1)
 	target := trim(match[3], `"'`)
 }
 
@@ -127,5 +128,8 @@ deny_download_verification contains msg if {
 	not is_checksum_manifest(target)
 	not verifies_download(target)
 
-	msg := sprintf("Downloaded artifact %q in %q must be verified against its own upstream SHA-256 manifest.", [target, input.path])
+	msg := sprintf("Downloaded artifact %q in %q must be verified against its own upstream SHA-256 manifest.", [
+		target,
+		input.path,
+	])
 }
