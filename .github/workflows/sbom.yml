@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
 
       - name: Run SBOM Generation (CycloneDX)
-        uses: sentenz/actions/trivy@9f37c086ab1c2d31687e731bfbc6184e0b882a7f # 1.4.10
+        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
         with:
           scan-type: sbom-generate
           scan-target: "."
@@ -36,7 +36,7 @@ jobs:
           output: sbom.cdx.json
 
       - name: Run SBOM Generation (SPDX)
-        uses: sentenz/actions/trivy@9f37c086ab1c2d31687e731bfbc6184e0b882a7f # 1.4.10
+        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
         with:
           scan-type: sbom-generate
           scan-target: "."
