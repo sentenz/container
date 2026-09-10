@@ -106,8 +106,9 @@ The `Container` workflow uses immutable revisions of actions from
 
 - pull requests and changes to `main` validate the catalog, scan the image
   definitions with Trivy, and build every catalog image without publishing;
-- published GitHub Releases rebuild the catalog at the release tag and publish
-  versioned and `latest` multi-platform images to GHCR;
+- published GitHub Releases and calls from Semantic-Release rebuild the catalog
+  at the release tag and publish versioned and `latest` multi-platform images to
+  GHCR;
 - workflow permissions are read-only by default, with `packages: write` granted
   only to the release publishing job.
 

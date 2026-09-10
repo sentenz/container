@@ -24,6 +24,16 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        description: Publish images to GHCR
+        type: boolean
+        default: false
+      version:
+        description: Release tag to check out and publish
+        required: true
+        type: string
 
 concurrency:
   group: container-${{ github.workflow }}-${{ github.ref }}
@@ -43,6 +53,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.version || github.event.release.tag_name }}
           persist-credentials: false
 
       - name: Validate catalog and create matrix
@@ -60,6 +71,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.version || github.event.release.tag_name }}
           persist-credentials: false
 
       - name: Scan Containerfiles
@@ -74,7 +86,7 @@ jobs:
 
   validate:
     name: Build ${{ matrix.name }}
-    if: github.event_name != 'release'
+    if: github.event_name != 'release' && !inputs.publish
     needs: catalog
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -85,6 +97,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.version || github.event.release.tag_name }}
           persist-credentials: false
 
       - name: Build image
@@ -99,7 +112,7 @@ jobs:
 
   publish:
     name: Publish ${{ matrix.name }}
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || inputs.publish
     needs:
       - catalog
       - security
@@ -115,14 +128,14 @@ jobs:
       - name: Checkout release
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ inputs.version || github.event.release.tag_name }}
           persist-credentials: false
 
       - name: Build and publish image
         id: image
         uses: sentenz/actions/docker@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
         with:
-          version: ${{ github.event.release.tag_name }}
+          version: ${{ inputs.version || github.event.release.tag_name }}
           context: .
           file: ${{ matrix.file }}
           image-name: ${{ matrix.name }}
