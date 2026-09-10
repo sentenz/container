@@ -29,7 +29,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Regal
-        uses: sentenz/actions/regal@13459d04f1c048f60ffc99d50dba5a362111d7b2 # 1.4.4
+        uses: sentenz/actions/regal@9f37c086ab1c2d31687e731bfbc6184e0b882a7f # 1.4.10
         with:
           path: "./tests/policy"
           regal-version: "latest"
