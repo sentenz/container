@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "multi-stage-dockerfile": {
+      "source": "sentenz/skills",
+      "sourceType": "github",
+      "skillPath": "skills/multi-stage-dockerfile/SKILL.md",
+      "computedHash": "a41d494f5da0e035674a4ec71a2123a431995c97f0ec79c6b3da3c0720ddfe11"
+    }
+  }
+}
