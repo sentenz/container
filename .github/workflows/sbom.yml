@@ -9,10 +9,6 @@ on:
         description: Release tag to generate and publish container SBOMs for
         required: true
         type: string
-    secrets:
-      GITHUB_TOKEN:
-        required: true
-
 permissions: {}
 
 jobs:
@@ -70,7 +66,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
 
       - name: Generate SPDX SBOM
         uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
@@ -134,7 +130,7 @@ jobs:
           subject-digest: ${{ matrix.digest }}
           sbom-path: ${{ matrix.filename }}
           push-to-registry: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
   publish:
     name: Publish SBOMs to release

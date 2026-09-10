@@ -204,6 +204,5 @@ jobs:
       attestations: write
       actions: read
     uses: ./.github/workflows/sbom.yml
-    secrets: inherit
     with:
       version: ${{ inputs.version || github.event.release.tag_name }}
