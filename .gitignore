@@ -1,16 +1,37 @@
-# SPDX-License-Identifier: Apache-2.0
+# https://www.toptal.com/developers/gitignore/
 
+### Helm ###
+# Chart dependencies
+**/charts/**/*.tgz
+
+render/
+
+### Local Runtime State ###
+.local/
+
+### Miscellaneous ###
+logs/
+*.log
+
+### Dotenv ###
+# Ignore dotenv files (unencrypted), allow encrypted files with .enc
 .env
 .env.*
+!.env.enc
+!.env.*.enc
 !.env.example
 
-.conftest-inputs/
-.local/
-artifacts/
-coverage/
-dist/
-logs/
-tmp/
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-*.log
-*.tmp
+### Certificates ###
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.priv

@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Semgrep
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  semgrep:
+    name: Semgrep Action
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Semgrep
+        uses: sentenz/actions/semgrep@ed8d725668082b21a56c2d043b6c7b32b5da1c63 # 1.4.5
+        with:
+          config: "auto"
+          metrics: "auto"
+          no-secrets-validation: "true"
+          sarif-output: semgrep-results.sarif
+
+      - name: Upload SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v4.31.9
+        with:
+          sarif_file: semgrep-results.sarif
