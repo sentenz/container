@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Bind each catalog platform to a published image manifest for SBOM processing."""
+
+import argparse
+import json
+from pathlib import Path
+import re
+import sys
+
+
+MANIFEST_TYPES = {
+    "application/vnd.oci.image.manifest.v1+json",
+    "application/vnd.docker.distribution.manifest.v2+json",
+}
+INDEX_TYPES = {
+    "application/vnd.oci.image.index.v1+json",
+    "application/vnd.docker.distribution.manifest.list.v2+json",
+}
+PLATFORMS = {"linux/amd64", "linux/arm64"}
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def valid_digest(value):
+    return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value)
+
+
+def validate_identity(name, image, version):
+    require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*", name), "invalid image name")
+    require(
+        re.fullmatch(r"ghcr\.io/[a-z0-9-]+/" + re.escape(name), image),
+        "expected an untagged GHCR image matching the catalog name",
+    )
+    require(re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}", version), "invalid release tag")
+
+
+def validate_platforms(platforms):
+    require(bool(platforms) and set(platforms) <= PLATFORMS, "unsupported or empty platform list")
+    require(len(platforms) == len(set(platforms)), "duplicate requested platform")
+
+
+def record(index, name, image, digest, platforms, version):
+    validate_identity(name, image, version)
+    validate_platforms(platforms)
+    require(valid_digest(digest), "invalid image index digest")
+    require(index.get("schemaVersion") == 2, "unsupported image manifest schema")
+    media_type = index.get("mediaType")
+    if media_type in MANIFEST_TYPES:
+        require(len(platforms) == 1, "a single manifest cannot cover multiple platforms")
+        manifests = {platforms[0]: digest}
+    else:
+        require(media_type in INDEX_TYPES, "expected an OCI index or Docker manifest list")
+        manifests = {}
+        for descriptor in index["manifests"]:
+            platform = descriptor.get("platform", {})
+            key = f"{platform.get('os')}/{platform.get('architecture')}"
+            if key not in platforms:
+                continue
+            # BuildKit adds non-runtime attestation manifests to the same index.
+            if descriptor.get("annotations", {}).get("vnd.docker.reference.type") == "attestation-manifest":
+                continue
+            variant = platform.get("variant", "")
+            require(not variant or (key == "linux/arm64" and variant == "v8"), "unsupported platform variant")
+            require(descriptor.get("mediaType") in MANIFEST_TYPES, "expected a platform image manifest")
+            require(key not in manifests, f"ambiguous manifest for {key}")
+            require(valid_digest(descriptor.get("digest")), f"invalid manifest digest for {key}")
+            manifests[key] = descriptor["digest"]
+        require(set(manifests) == set(platforms), "image index is missing a requested platform")
+    require(len(set(manifests.values())) == len(manifests), "platforms must have distinct manifests")
+    return {
+        "schemaVersion": 1,
+        "name": name,
+        "image": image,
+        "version": version,
+        "indexDigest": digest,
+        "manifests": manifests,
+    }
+
+
+def collect(catalog, records, owner, version):
+    images = catalog["images"]
+    expected = {entry["name"]: entry["platforms"] for entry in images}
+    require(bool(expected) and len(expected) == len(images), "invalid or duplicate catalog images")
+    by_name = {item["name"]: item for item in records}
+    require(len(by_name) == len(records), "duplicate published image record")
+    require(set(by_name) == set(expected), "published image records do not match the release catalog")
+    matrix = []
+    for name, platforms in expected.items():
+        validate_platforms(platforms)
+        item = by_name[name]
+        validate_identity(name, item["image"], version)
+        require(item["schemaVersion"] == 1, "unsupported published image record schema")
+        require(item["version"] == version, "published image belongs to a different release")
+        require(item["image"] == f"ghcr.io/{owner.lower()}/{name}", "published image belongs to a different owner")
+        require(valid_digest(item["indexDigest"]), "invalid image index digest")
+        manifests = item["manifests"]
+        require(set(manifests) == set(platforms), f"published platforms do not match the catalog for {name}")
+        require(len(set(manifests.values())) == len(manifests), "platforms must have distinct manifests")
+        for platform in platforms:
+            digest = manifests[platform]
+            require(valid_digest(digest), "invalid platform manifest digest")
+            suffix = platform.replace("/", "-")
+            matrix.append({
+                "image": item["image"],
+                "digest": digest,
+                "platform": platform,
+                "artifact": f"container-sbom-{name}-{suffix}",
+                "filename": f"{name}-{version}-{suffix}.spdx.json",
+            })
+    return {"include": matrix}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    single = commands.add_parser("record", help="resolve the runtime manifests in a pushed image index")
+    for key in ("name", "image", "digest", "platforms", "version"):
+        single.add_argument(f"--{key}", required=True)
+    single.add_argument("index", type=Path)
+    aggregate = commands.add_parser("collect", help="check published records against the release catalog")
+    aggregate.add_argument("--catalog", required=True, type=Path)
+    aggregate.add_argument("--owner", required=True)
+    aggregate.add_argument("--version", required=True)
+    aggregate.add_argument("directory", type=Path)
+    args = parser.parse_args()
+    try:
+        if args.command == "record":
+            result = record(json.loads(args.index.read_text()), args.name, args.image, args.digest,
+                            args.platforms.split(","), args.version)
+        else:
+            records = [json.loads(path.read_text()) for path in sorted(args.directory.glob("*.json"))]
+            result = collect(json.loads(args.catalog.read_text()), records, args.owner, args.version)
+        print(json.dumps(result, separators=(",", ":")))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        print(f"sbom-matrix: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

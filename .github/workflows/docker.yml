@@ -7,20 +7,26 @@ on:
     paths:
       - containers/**
       - scripts/container
+      - scripts/sbom-matrix
+      - tests/test_sbom_matrix.py
       - .dockerignore
       - Makefile
       - renovate.json
       - .github/workflows/docker.yml
+      - .github/workflows/sbom.yml
   push:
     branches:
       - main
     paths:
       - containers/**
       - scripts/container
+      - scripts/sbom-matrix
+      - tests/test_sbom_matrix.py
       - .dockerignore
       - Makefile
       - renovate.json
       - .github/workflows/docker.yml
+      - .github/workflows/sbom.yml
   release:
     types: [published]
   workflow_dispatch:
@@ -61,6 +67,9 @@ jobs:
         run: |
           matrix="$(./scripts/container matrix)"
           printf 'value=%s\n' "${matrix}" >> "${GITHUB_OUTPUT}"
+
+      - name: Test SBOM manifest resolution
+        run: python3 -m unittest discover -s tests -p 'test_sbom_matrix.py' -v
 
   security:
     name: Security
@@ -142,6 +151,31 @@ jobs:
           push: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Record published platform manifests
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+          IMAGE: ${{ steps.image.outputs.image }}
+          IMAGE_NAME: ${{ matrix.name }}
+          PLATFORMS: ${{ matrix.platforms }}
+          VERSION: ${{ inputs.version || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --raw > "${RUNNER_TEMP}/image-index.json"
+          ./scripts/sbom-matrix record \
+            --name "${IMAGE_NAME}" --image "${IMAGE}" --digest "${DIGEST}" \
+            --platforms "${PLATFORMS}" --version "${VERSION}" \
+            "${RUNNER_TEMP}/image-index.json" > "${RUNNER_TEMP}/published-image-${IMAGE_NAME}.json"
+
+      - name: Upload published image record
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: published-image-${{ matrix.name }}
+          path: ${{ runner.temp }}/published-image-${{ matrix.name }}.json
+          if-no-files-found: error
+          # Preserve successful matrix records when only failed jobs are rerun.
+          overwrite: true
+          retention-days: 7
+
       - name: Report published image
         env:
           DIGEST: ${{ steps.image.outputs.digest }}
@@ -157,3 +191,18 @@ jobs:
             printf '%s\n' "${TAGS}"
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  sbom:
+    name: Container SBOMs
+    if: github.event_name == 'release' || inputs.publish
+    needs: publish
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      actions: read
+    uses: ./.github/workflows/sbom.yml
+    secrets: inherit
+    with:
+      version: ${{ inputs.version || github.event.release.tag_name }}
