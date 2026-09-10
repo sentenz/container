@@ -130,7 +130,7 @@ print_matrix() {
       .images[] |
       {
         name: .name,
-        "image-name": .package,
+        image_name: .package,
         file: .file,
         platforms: (.platforms | join(","))
       }

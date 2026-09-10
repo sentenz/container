@@ -114,7 +114,7 @@ jobs:
           version: ci-${{ github.run_id }}-${{ github.run_attempt }}
           context: .
           file: ${{ matrix.file }}
-          image-name: ${{ matrix.image-name }}
+          image-name: ${{ matrix.image_name }}
           platforms: ${{ matrix.platforms }}
           push: false
 
@@ -146,7 +146,7 @@ jobs:
           version: ${{ inputs.version || github.event.release.tag_name }}
           context: .
           file: ${{ matrix.file }}
-          image-name: ${{ matrix.image-name }}
+          image-name: ${{ matrix.image_name }}
           platforms: ${{ matrix.platforms }}
           push: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -156,7 +156,7 @@ jobs:
           DIGEST: ${{ steps.image.outputs.digest }}
           IMAGE: ${{ steps.image.outputs.image }}
           IMAGE_NAME: ${{ matrix.name }}
-          PACKAGE: ${{ matrix.image-name }}
+          PACKAGE: ${{ matrix.image_name }}
           PLATFORMS: ${{ matrix.platforms }}
           VERSION: ${{ inputs.version || github.event.release.tag_name }}
         run: |
