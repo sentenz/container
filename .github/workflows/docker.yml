@@ -156,14 +156,13 @@ jobs:
           DIGEST: ${{ steps.image.outputs.digest }}
           IMAGE: ${{ steps.image.outputs.image }}
           IMAGE_NAME: ${{ matrix.name }}
-          PACKAGE: ${{ matrix.image_name }}
           PLATFORMS: ${{ matrix.platforms }}
           VERSION: ${{ inputs.version || github.event.release.tag_name }}
         run: |
           set -euo pipefail
           docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --raw > "${RUNNER_TEMP}/image-index.json"
           ./scripts/sbom-matrix record \
-            --name "${IMAGE_NAME}" --image "${IMAGE}" --package "${PACKAGE}" --digest "${DIGEST}" \
+            --name "${IMAGE_NAME}" --image "${IMAGE}" --digest "${DIGEST}" \
             --platforms "${PLATFORMS}" --version "${VERSION}" \
             "${RUNNER_TEMP}/image-index.json" > "${RUNNER_TEMP}/published-image-${IMAGE_NAME}.json"
 

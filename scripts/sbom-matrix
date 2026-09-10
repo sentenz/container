@@ -29,12 +29,10 @@ def valid_digest(value):
     return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value)
 
 
-def validate_identity(name, image, version, package_name=None):
+def validate_identity(name, image, version):
     require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*", name), "invalid image name")
-    package_name = package_name or name
-    require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*", package_name), "invalid package name")
     require(
-        re.fullmatch(r"ghcr\.io/[a-z0-9-]+/" + re.escape(package_name), image),
+        re.fullmatch(r"ghcr\.io/[a-z0-9-]+/" + re.escape(name), image),
         "expected an untagged GHCR image matching the catalog name",
     )
     require(re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}", version), "invalid release tag")
@@ -45,8 +43,8 @@ def validate_platforms(platforms):
     require(len(platforms) == len(set(platforms)), "duplicate requested platform")
 
 
-def record(index, name, image, package_name, digest, platforms, version):
-    validate_identity(name, image, version, package_name)
+def record(index, name, image, digest, platforms, version):
+    validate_identity(name, image, version)
     validate_platforms(platforms)
     require(valid_digest(digest), "invalid image index digest")
     require(index.get("schemaVersion") == 2, "unsupported image manifest schema")
@@ -96,10 +94,10 @@ def collect(catalog, records, owner, version):
         platforms = entry["platforms"]
         validate_platforms(platforms)
         item = by_name[name]
-        validate_identity(name, item["image"], version, entry["package"])
+        validate_identity(name, item["image"], version)
         require(item["schemaVersion"] == 1, "unsupported published image record schema")
         require(item["version"] == version, "published image belongs to a different release")
-        require(item["image"] == f"ghcr.io/{owner.lower()}/{entry['package']}", "published image belongs to a different owner or package")
+        require(item["image"] == f"ghcr.io/{owner.lower()}/{name}", "published image belongs to a different owner or image")
         require(valid_digest(item["indexDigest"]), "invalid image index digest")
         manifests = item["manifests"]
         require(set(manifests) == set(platforms), f"published platforms do not match the catalog for {name}")
@@ -122,7 +120,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     single = commands.add_parser("record", help="resolve the runtime manifests in a pushed image index")
-    for key in ("name", "image", "package", "digest", "platforms", "version"):
+    for key in ("name", "image", "digest", "platforms", "version"):
         single.add_argument(f"--{key}", required=True)
     single.add_argument("index", type=Path)
     aggregate = commands.add_parser("collect", help="check published records against the release catalog")
@@ -133,7 +131,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "record":
-            result = record(json.loads(args.index.read_text()), args.name, args.image, args.package, args.digest,
+            result = record(json.loads(args.index.read_text()), args.name, args.image, args.digest,
                             args.platforms.split(","), args.version)
         else:
             records = [json.loads(path.read_text()) for path in sorted(args.directory.glob("*.json"))]

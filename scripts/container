@@ -37,7 +37,6 @@ validate_catalog() {
     all(.images[];
       (.name | type == "string" and test("^[a-z0-9]+([._-][a-z0-9]+)*$")) and
       (.description | type == "string" and length > 0) and
-      (.package | type == "string" and test("^[a-z0-9]+([._-][a-z0-9]+)*$")) and
       (.file == ("containers/" + .name + "/Containerfile")) and
       (.platforms | type == "array" and length > 0) and
       all(.platforms[]; . == "linux/amd64" or . == "linux/arm64") and
@@ -45,8 +44,6 @@ validate_catalog() {
     ) and
     (([.images[].name] | length) == ([.images[].name] | unique | length)) and
     (([.images[].file] | length) == ([.images[].file] | unique | length))
-    and
-    (([.images[].package] | length) == ([.images[].package] | unique | length))
   ' "${catalog_file}" >/dev/null || fail "catalog structure is invalid"
 
   jq -r '.images[] | [.name, .file] | @tsv' "${catalog_file}" |
@@ -69,8 +66,8 @@ validate_catalog() {
 list_images() {
   require_command jq
   jq -r '
-    ["IMAGE", "PACKAGE", "PLATFORMS", "DESCRIPTION"],
-    (.images[] | [.name, .package, (.platforms | join(",")), .description]) |
+    ["IMAGE", "REGISTRY", "PLATFORMS", "DESCRIPTION"],
+    (.images[] | [.name, ("ghcr.io/sentenz/" + .name), (.platforms | join(",")), .description]) |
     @tsv
   ' "${catalog_file}"
 }
@@ -78,7 +75,6 @@ list_images() {
 build_image() {
   local image_name="$1"
   local containerfile
-  local package_name
   local catalog_entry
   local engine="${CONTAINER_ENGINE:-docker}"
   local registry="${CONTAINER_REGISTRY:-ghcr.io/sentenz}"
@@ -87,16 +83,16 @@ build_image() {
 
   catalog_entry="$(
     jq -er --arg name "${image_name}" \
-      '.images[] | select(.name == $name) | [.file, .package] | @tsv' "${catalog_file}"
+      '.images[] | select(.name == $name) | .file' "${catalog_file}"
   )" || fail "unknown image: ${image_name}"
-  IFS=$'\t' read -r containerfile package_name <<< "${catalog_entry}"
+  containerfile="${catalog_entry}"
 
   require_command "${engine}"
 
   build_arguments=(
     build
     --file "${repository_root}/${containerfile}"
-    --tag "${registry}/${package_name}:${tag}"
+    --tag "${registry}/${image_name}:${tag}"
   )
 
   if [[ -n "${CONTAINER_PLATFORM:-}" ]]; then
@@ -105,7 +101,7 @@ build_image() {
 
   build_arguments+=("${repository_root}")
 
-  printf 'container: building %s/%s:%s\n' "${registry}" "${package_name}" "${tag}" >&2
+  printf 'container: building %s/%s:%s\n' "${registry}" "${image_name}" "${tag}" >&2
   "${engine}" "${build_arguments[@]}"
 }
 
@@ -132,7 +128,7 @@ print_matrix() {
       .images[] |
       {
         name: .name,
-        image_name: .package,
+        image_name: .name,
         file: .file,
         platforms: (.platforms | join(","))
       }

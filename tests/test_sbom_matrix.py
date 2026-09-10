@@ -23,13 +23,13 @@ class SbomMatrixTests(unittest.TestCase):
                 {"mediaType": "application/vnd.oci.image.manifest.v1+json", "digest": "sha256:" + "c" * 64, "platform": {"os": "unknown", "architecture": "unknown"}, "annotations": {"vnd.docker.reference.type": "attestation-manifest"}},
             ],
         }
-        result = MODULE.record(index, "k8s", "ghcr.io/sentenz/container-k8s", "container-k8s", "sha256:" + "d" * 64, ["linux/amd64", "linux/arm64"], "1.0.0")
+        result = MODULE.record(index, "k8s", "ghcr.io/sentenz/k8s", "sha256:" + "d" * 64, ["linux/amd64", "linux/arm64"], "1.0.0")
         self.assertEqual(result["manifests"]["linux/amd64"], "sha256:" + "a" * 64)
         self.assertEqual(result["manifests"]["linux/arm64"], "sha256:" + "b" * 64)
 
     def test_collect_rejects_missing_platform(self):
-        catalog = {"images": [{"name": "k8s", "package": "container-k8s", "platforms": ["linux/amd64", "linux/arm64"]}]}
-        record = {"schemaVersion": 1, "name": "k8s", "image": "ghcr.io/sentenz/container-k8s", "version": "1.0.0", "indexDigest": "sha256:" + "d" * 64, "manifests": {"linux/amd64": "sha256:" + "a" * 64}}
+        catalog = {"images": [{"name": "k8s", "platforms": ["linux/amd64", "linux/arm64"]}]}
+        record = {"schemaVersion": 1, "name": "k8s", "image": "ghcr.io/sentenz/k8s", "version": "1.0.0", "indexDigest": "sha256:" + "d" * 64, "manifests": {"linux/amd64": "sha256:" + "a" * 64}}
         with self.assertRaises(ValueError):
             MODULE.collect(catalog, [record], "sentenz", "1.0.0")
 
