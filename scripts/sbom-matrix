@@ -29,10 +29,12 @@ def valid_digest(value):
     return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value)
 
 
-def validate_identity(name, image, version):
+def validate_identity(name, image, version, package_name=None):
     require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*", name), "invalid image name")
+    package_name = package_name or name
+    require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*", package_name), "invalid package name")
     require(
-        re.fullmatch(r"ghcr\.io/[a-z0-9-]+/" + re.escape(name), image),
+        re.fullmatch(r"ghcr\.io/[a-z0-9-]+/" + re.escape(package_name), image),
         "expected an untagged GHCR image matching the catalog name",
     )
     require(re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}", version), "invalid release tag")
@@ -43,8 +45,8 @@ def validate_platforms(platforms):
     require(len(platforms) == len(set(platforms)), "duplicate requested platform")
 
 
-def record(index, name, image, digest, platforms, version):
-    validate_identity(name, image, version)
+def record(index, name, image, package_name, digest, platforms, version):
+    validate_identity(name, image, version, package_name)
     validate_platforms(platforms)
     require(valid_digest(digest), "invalid image index digest")
     require(index.get("schemaVersion") == 2, "unsupported image manifest schema")
@@ -83,19 +85,21 @@ def record(index, name, image, digest, platforms, version):
 
 def collect(catalog, records, owner, version):
     images = catalog["images"]
-    expected = {entry["name"]: entry["platforms"] for entry in images}
+    expected = {entry["name"]: entry for entry in images}
     require(bool(expected) and len(expected) == len(images), "invalid or duplicate catalog images")
     by_name = {item["name"]: item for item in records}
     require(len(by_name) == len(records), "duplicate published image record")
     require(set(by_name) == set(expected), "published image records do not match the release catalog")
     matrix = []
     for name, platforms in expected.items():
+        entry = expected[name]
+        platforms = entry["platforms"]
         validate_platforms(platforms)
         item = by_name[name]
-        validate_identity(name, item["image"], version)
+        validate_identity(name, item["image"], version, entry["package"])
         require(item["schemaVersion"] == 1, "unsupported published image record schema")
         require(item["version"] == version, "published image belongs to a different release")
-        require(item["image"] == f"ghcr.io/{owner.lower()}/{name}", "published image belongs to a different owner")
+        require(item["image"] == f"ghcr.io/{owner.lower()}/{entry['package']}", "published image belongs to a different owner or package")
         require(valid_digest(item["indexDigest"]), "invalid image index digest")
         manifests = item["manifests"]
         require(set(manifests) == set(platforms), f"published platforms do not match the catalog for {name}")
@@ -118,7 +122,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     single = commands.add_parser("record", help="resolve the runtime manifests in a pushed image index")
-    for key in ("name", "image", "digest", "platforms", "version"):
+    for key in ("name", "image", "package", "digest", "platforms", "version"):
         single.add_argument(f"--{key}", required=True)
     single.add_argument("index", type=Path)
     aggregate = commands.add_parser("collect", help="check published records against the release catalog")
@@ -129,7 +133,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == "record":
-            result = record(json.loads(args.index.read_text()), args.name, args.image, args.digest,
+            result = record(json.loads(args.index.read_text()), args.name, args.image, args.package, args.digest,
                             args.platforms.split(","), args.version)
         else:
             records = [json.loads(path.read_text()) for path in sorted(args.directory.glob("*.json"))]
