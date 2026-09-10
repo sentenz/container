@@ -81,7 +81,6 @@ jobs:
           scan-target: containers
           format: table
           severity: HIGH,CRITICAL
-          scanners: misconfig
           exit-code: 1
 
   validate:
