@@ -63,7 +63,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan Containerfiles
-        uses: sentenz/actions/trivy@ed8d725668082b21a56c2d043b6c7b32b5da1c63 # 1.4.5
+        uses: sentenz/actions/trivy@9f37c086ab1c2d31687e731bfbc6184e0b882a7f # 1.4.10
         with:
           scan-type: config
           scan-target: containers
@@ -88,7 +88,7 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        uses: sentenz/actions/docker@ed8d725668082b21a56c2d043b6c7b32b5da1c63 # 1.4.5
+        uses: sentenz/actions/docker@9f37c086ab1c2d31687e731bfbc6184e0b882a7f # 1.4.10
         with:
           version: ci-${{ github.run_id }}-${{ github.run_attempt }}
           context: .
@@ -120,7 +120,7 @@ jobs:
 
       - name: Build and publish image
         id: image
-        uses: sentenz/actions/docker@ed8d725668082b21a56c2d043b6c7b32b5da1c63 # 1.4.5
+        uses: sentenz/actions/docker@9f37c086ab1c2d31687e731bfbc6184e0b882a7f # 1.4.10
         with:
           version: ${{ github.event.release.tag_name }}
           context: .
