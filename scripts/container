@@ -37,7 +37,7 @@ validate_catalog() {
     all(.images[];
       (.name | type == "string" and test("^[a-z0-9]+([._-][a-z0-9]+)*$")) and
       (.description | type == "string" and length > 0) and
-      (.package | type == "string" and test("^[a-z0-9]+([._-][a-z0-9]+)*(\\/[a-z0-9]+([._-][a-z0-9]+)*)*$")) and
+      (.package | type == "string" and test("^[a-z0-9]+([._-][a-z0-9]+)*$")) and
       (.file == ("containers/" + .name + "/Containerfile")) and
       (.platforms | type == "array" and length > 0) and
       all(.platforms[]; . == "linux/amd64" or . == "linux/arm64") and

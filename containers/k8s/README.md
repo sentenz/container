@@ -25,14 +25,14 @@ To select a Kind release:
 docker build \
   --build-arg KIND_VERSION=v0.32.0 \
   --file containers/k8s/Containerfile \
-  --tag ghcr.io/sentenz/container/k8s:dev \
+  --tag ghcr.io/sentenz/container-k8s:dev \
   .
 ```
 
 ## Run
 
 ```bash
-docker run --rm ghcr.io/sentenz/container/k8s:<version> kubectl version --client
+docker run --rm ghcr.io/sentenz/container-k8s:<version> kubectl version --client
 ```
 
 For Kind, mount the Docker socket and grant the permissions required by the
@@ -44,6 +44,6 @@ docker run --rm \
   --network host \
   --volume /var/run/docker.sock:/var/run/docker.sock \
   --volume "$PWD:/workspace" \
-  ghcr.io/sentenz/container/k8s:<version> \
+  ghcr.io/sentenz/container-k8s:<version> \
   kind get clusters
 ```
