@@ -33,6 +33,19 @@ class SbomMatrixTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             MODULE.collect(catalog, [record], "sentenz", "1.0.0")
 
+    def test_collect_uses_catalog_name_for_registry_path(self):
+        catalog = {"images": [{"name": "k8s", "platforms": ["linux/amd64"]}]}
+        record = {
+            "schemaVersion": 1,
+            "name": "k8s",
+            "image": "ghcr.io/sentenz/k8s",
+            "version": "1.0.0",
+            "indexDigest": "sha256:" + "d" * 64,
+            "manifests": {"linux/amd64": "sha256:" + "a" * 64},
+        }
+        matrix = MODULE.collect(catalog, [record], "sentenz", "1.0.0")
+        self.assertEqual(matrix["include"][0]["image"], "ghcr.io/sentenz/k8s")
+
 
 if __name__ == "__main__":
     unittest.main()
