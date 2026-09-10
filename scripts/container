@@ -79,15 +79,17 @@ build_image() {
   local image_name="$1"
   local containerfile
   local package_name
+  local catalog_entry
   local engine="${CONTAINER_ENGINE:-docker}"
   local registry="${CONTAINER_REGISTRY:-ghcr.io/sentenz}"
   local tag="${CONTAINER_TAG:-dev}"
   local -a build_arguments
 
-  IFS=$'\t' read -r containerfile package_name < <(
+  catalog_entry="$(
     jq -er --arg name "${image_name}" \
       '.images[] | select(.name == $name) | [.file, .package] | @tsv' "${catalog_file}"
-  ) || fail "unknown image: ${image_name}"
+  )" || fail "unknown image: ${image_name}"
+  IFS=$'\t' read -r containerfile package_name <<< "${catalog_entry}"
 
   require_command "${engine}"
 
