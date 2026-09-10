@@ -32,7 +32,7 @@ def valid_digest(value):
 def validate_identity(name, image, version, package_name=None):
     require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*", name), "invalid image name")
     package_name = package_name or name
-    require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*", package_name), "invalid package name")
+    require(re.fullmatch(r"[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*", package_name), "invalid package name")
     require(
         re.fullmatch(r"ghcr\.io/[a-z0-9-]+/" + re.escape(package_name), image),
         "expected an untagged GHCR image matching the catalog name",

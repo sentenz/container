@@ -23,7 +23,7 @@ context boundary.
 
 | Image | Purpose | Platforms | Package |
 | --- | --- | --- | --- |
-| `k8s` | Pinned Kubernetes CLI toolchain with kubectl, Kustomize, Kind, and Helm | `linux/amd64`, `linux/arm64` | `ghcr.io/sentenz/container-k8s` |
+| `k8s` | Pinned Kubernetes CLI toolchain with kubectl, Kustomize, Kind, and Helm | `linux/amd64`, `linux/arm64` | `ghcr.io/sentenz/container/k8s` |
 
 ## Layout
 
@@ -57,7 +57,7 @@ context boundary.
 The Containerfile path and build context are deliberately distinct:
 
 ```bash
-docker build --file containers/k8s/Containerfile --tag ghcr.io/sentenz/container-k8s:dev .
+docker build --file containers/k8s/Containerfile --tag ghcr.io/sentenz/container/k8s:dev .
 ```
 
 The final `.` keeps the repository root as the build context.
