@@ -1,0 +1,100 @@
+# SPDX-License-Identifier: Apache-2.0
+
+name: Publish image
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        description: Catalog name matching the directory below containers/
+        required: true
+        type: string
+      file:
+        description: Containerfile path relative to the repository root
+        required: true
+        type: string
+      platforms:
+        description: JSON array of target platforms
+        required: true
+        type: string
+      version:
+        description: Release tag to check out and publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build and publish
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.image.outputs.digest }}
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.version }}
+          persist-credentials: false
+
+      - name: Build and publish image
+        id: image
+        uses: sentenz/actions/docker@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        with:
+          version: ${{ inputs.version }}
+          context: .
+          file: ${{ inputs.file }}
+          # The action resolves ghcr.io/<owner>/<name>, without the repository name.
+          image-name: ${{ inputs.name }}
+          platforms: ${{ join(fromJSON(inputs.platforms), ',') }}
+          push: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.image.outputs.image }}
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
+
+      - name: Report published image
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+          IMAGE: ${{ steps.image.outputs.image }}
+          TAGS: ${{ steps.image.outputs.tags }}
+        run: |
+          {
+            echo "### Published ${IMAGE}"
+            echo
+            echo "- Digest: \`${DIGEST}\`"
+            echo
+            echo '```text'
+            printf '%s\n' "${TAGS}"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  sbom:
+    name: Image SBOMs
+    needs: publish
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/sbom.yml
+    with:
+      name: ${{ inputs.name }}
+      image: ${{ needs.publish.outputs.image }}
+      digest: ${{ needs.publish.outputs.digest }}
+      platforms: ${{ inputs.platforms }}
+      version: ${{ inputs.version }}

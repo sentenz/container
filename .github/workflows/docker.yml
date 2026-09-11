@@ -7,20 +7,28 @@ on:
     paths:
       - containers/**
       - scripts/container
+      - scripts/image-platform
+      - tests/test_publication.py
       - .dockerignore
       - Makefile
-      - renovate.json
+      - renovate.jsonc
       - .github/workflows/docker.yml
+      - .github/workflows/publish-image.yml
+      - .github/workflows/sbom.yml
   push:
     branches:
       - main
     paths:
       - containers/**
       - scripts/container
+      - scripts/image-platform
+      - tests/test_publication.py
       - .dockerignore
       - Makefile
-      - renovate.json
+      - renovate.jsonc
       - .github/workflows/docker.yml
+      - .github/workflows/publish-image.yml
+      - .github/workflows/sbom.yml
   release:
     types: [published]
   workflow_dispatch:
@@ -55,6 +63,9 @@ jobs:
         with:
           ref: ${{ inputs.version || github.event.release.tag_name }}
           persist-credentials: false
+
+      - name: Check registry naming and platform selection
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
 
       - name: Validate catalog and create matrix
         id: matrix
@@ -111,49 +122,21 @@ jobs:
 
   publish:
     name: Publish ${{ matrix.name }}
-    if: github.event_name == 'release' || inputs.publish
+    if: github.event_name != 'pull_request' && (github.event_name == 'release' || inputs.publish)
     needs:
       - catalog
       - security
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
     permissions:
-      contents: read
+      contents: write
       packages: write
+      id-token: write
+      attestations: write
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.catalog.outputs.matrix) }}
-    steps:
-      - name: Checkout release
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.version || github.event.release.tag_name }}
-          persist-credentials: false
-
-      - name: Build and publish image
-        id: image
-        uses: sentenz/actions/docker@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
-        with:
-          version: ${{ inputs.version || github.event.release.tag_name }}
-          context: .
-          file: ${{ matrix.file }}
-          image-name: ${{ matrix.name }}
-          platforms: ${{ matrix.platforms }}
-          push: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Report published image
-        env:
-          DIGEST: ${{ steps.image.outputs.digest }}
-          IMAGE: ${{ steps.image.outputs.image }}
-          TAGS: ${{ steps.image.outputs.tags }}
-        run: |
-          {
-            echo "### Published ${IMAGE}"
-            echo
-            echo "- Digest: \`${DIGEST}\`"
-            echo
-            echo '```text'
-            printf '%s\n' "${TAGS}"
-            echo '```'
-          } >> "${GITHUB_STEP_SUMMARY}"
+    uses: ./.github/workflows/publish-image.yml
+    with:
+      name: ${{ matrix.name }}
+      file: ${{ matrix.file }}
+      platforms: ${{ toJSON(matrix.platform_list) }}
+      version: ${{ inputs.version || github.event.release.tag_name }}

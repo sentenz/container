@@ -31,7 +31,9 @@ context boundary.
 .
 ├── .github/workflows/
 │   ├── conftest.yml
-│   └── docker.yml
+│   ├── docker.yml
+│   ├── publish-image.yml
+│   └── sbom.yml
 ├── containers/
 │   ├── images.json
 │   ├── images.schema.json
@@ -41,6 +43,7 @@ context boundary.
 │       └── install-kind.sh
 ├── scripts/
 │   ├── container
+│   ├── image-platform
 │   └── policy-inputs
 ├── tests/policy/
 │   ├── containerfile.rego
@@ -109,10 +112,23 @@ The `Container` workflow uses immutable revisions of actions from
 - published GitHub Releases and calls from Semantic-Release rebuild the catalog
   at the release tag and publish versioned and `latest` multi-platform images to
   GHCR;
-- workflow permissions are read-only by default, with `packages: write` granted
-  only to the release publishing job.
+- `publish-image.yml` passes each build digest to the reusable `sbom.yml` workflow,
+  which generates CycloneDX and SPDX inventories for each published platform;
+- GitHub signs build provenance for the image index and SPDX SBOM attestations
+  for each platform digest, and stores the attestations in GitHub and GHCR;
+- release assets use image and platform names, for example
+  `k8s-linux-amd64.spdx.json`, with `.image.json` files recording their digests;
+- workflow permissions are read-only by default. Publishing, release uploads,
+  and attestation jobs receive their required write permissions explicitly.
+
+The package path is `ghcr.io/<repository-owner>/<containers-directory-name>`:
+`containers/k8s` publishes `ghcr.io/sentenz/k8s`. The catalog validator requires
+that the image name and directory name match; the repository name is not part
+of the package path.
 
 Release tags must also be valid OCI tags, such as `1.2.3` or `v1.2.3`.
+See [Container publication](docs/container-publication.md) for the SBOM decision,
+verification commands, and the handover from `template-k8s`.
 
 ## Supply-chain policy
 

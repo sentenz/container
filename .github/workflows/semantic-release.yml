@@ -45,43 +45,16 @@ jobs:
             @semantic-release/git@^10
             conventional-changelog-conventionalcommits@9.3.1
 
-      - name: Run SBOM Generation (CycloneDX)
-        if: steps.release.outputs.new-release-published == 'true'
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
-        with:
-          scan-type: sbom-generate
-          scan-target: "."
-          format: cyclonedx
-          output: sbom.cdx.json
-
-      - name: Run SBOM Generation (SPDX)
-        if: steps.release.outputs.new-release-published == 'true'
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
-        with:
-          scan-type: sbom-generate
-          scan-target: "."
-          format: spdx-json
-          output: sbom.spdx.json
-
-      - name: Publish SBOM artifacts
-        if: steps.release.outputs.new-release-published == 'true'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: ${{ steps.release.outputs.new-release-version }}
-          files: |
-            sbom.cdx.json
-            sbom.spdx.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   trigger:
-    name: Trigger Workflows
+    name: Publish release images and SBOMs
     needs:
       - semantic-release
     if: always() && needs.semantic-release.outputs.new-release-published == 'true'
     permissions:
-      contents: read
+      contents: write
       packages: write
+      id-token: write
+      attestations: write
     uses: ./.github/workflows/docker.yml
     with:
       publish: true

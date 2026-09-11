@@ -5,8 +5,24 @@ name: SBOM
 on:
   workflow_call:
     inputs:
+      name:
+        description: Catalog image name
+        required: true
+        type: string
+      image:
+        description: Fully qualified GHCR image name without a tag
+        required: true
+        type: string
+      digest:
+        description: Immutable multi-platform digest returned by the build
+        required: true
+        type: string
+      platforms:
+        description: JSON array of published platforms
+        required: true
+        type: string
       version:
-        description: Git tag to generate and publish SBOMs for
+        description: GitHub Release tag to attach image SBOMs to
         required: true
         type: string
 
@@ -15,40 +31,123 @@ permissions:
 
 jobs:
   sbom:
-    name: SBOM Action
+    name: SBOM ${{ inputs.name }} (${{ matrix.platform }})
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(inputs.platforms) }}
     steps:
-      - name: Checkout Release
+      - name: Checkout release
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.version }}
           persist-credentials: false
 
-      - name: Run SBOM Generation (CycloneDX)
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve and pull the published platform digest
+        id: platform
+        env:
+          IMAGE: ${{ inputs.image }}
+          INDEX_DIGEST: ${{ inputs.digest }}
+          IMAGE_NAME: ${{ inputs.name }}
+          OWNER: ${{ github.repository_owner }}
+          PLATFORM: ${{ matrix.platform }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "${IMAGE_NAME}" =~ ^[a-z0-9]+([._-][a-z0-9]+)*$ ]]
+          [[ "${IMAGE}" == "ghcr.io/${OWNER,,}/${IMAGE_NAME}" ]]
+          [[ "${INDEX_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          case "${PLATFORM}" in
+            linux/amd64 | linux/arm64) ;;
+            *) echo "::error::Unsupported platform: ${PLATFORM}"; exit 1 ;;
+          esac
+
+          # Select the runtime manifest, excluding BuildKit's unknown/unknown
+          # attestation manifests. Never resolve a mutable release or latest tag.
+          docker manifest inspect "${IMAGE}@${INDEX_DIGEST}" > image-index.json
+          digest="$(./scripts/image-platform image-index.json "${PLATFORM}")"
+          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker pull --platform "${PLATFORM}" "${IMAGE}@${digest}"
+
+          prefix="${IMAGE_NAME}-${PLATFORM//\//-}"
+          mkdir -p sbom
+          jq -n --arg image "${IMAGE}" --arg digest "${digest}" \
+            --arg index_digest "${INDEX_DIGEST}" --arg platform "${PLATFORM}" \
+            --arg version "${VERSION}" \
+            '{image: $image, digest: $digest, index_digest: $index_digest,
+              platform: $platform, version: $version}' > "sbom/${prefix}.image.json"
+          {
+            printf 'digest=%s\n' "${digest}"
+            printf 'prefix=%s\n' "${prefix}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Generate image SBOM (CycloneDX)
         uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
         with:
           scan-type: sbom-generate
-          scan-target: "."
+          scan-target: ${{ inputs.image }}@${{ steps.platform.outputs.digest }}
           format: cyclonedx
-          output: sbom.cdx.json
+          output: sbom/${{ steps.platform.outputs.prefix }}.cdx.json
+          exit-code: "0"
 
-      - name: Run SBOM Generation (SPDX)
+      - name: Generate image SBOM (SPDX)
         uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
         with:
           scan-type: sbom-generate
-          scan-target: "."
+          scan-target: ${{ inputs.image }}@${{ steps.platform.outputs.digest }}
           format: spdx-json
-          output: sbom.spdx.json
+          output: sbom/${{ steps.platform.outputs.prefix }}.spdx.json
+          exit-code: "0"
 
-      - name: Publish SBOM Artifacts
+      - name: Attest image SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ inputs.image }}
+          subject-digest: ${{ steps.platform.outputs.digest }}
+          sbom-path: sbom/${{ steps.platform.outputs.prefix }}.spdx.json
+          push-to-registry: true
+          create-storage-record: false
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-${{ steps.platform.outputs.prefix }}
+          path: sbom/
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Publish image SBOMs to release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ inputs.version }}
+          fail_on_unmatched_files: true
           files: |
-            sbom.cdx.json
-            sbom.spdx.json
+            sbom/${{ steps.platform.outputs.prefix }}.cdx.json
+            sbom/${{ steps.platform.outputs.prefix }}.spdx.json
+            sbom/${{ steps.platform.outputs.prefix }}.image.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan image SBOM for vulnerabilities
+        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        with:
+          scan-type: sbom
+          scan-target: sbom/${{ steps.platform.outputs.prefix }}.cdx.json
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "1"
