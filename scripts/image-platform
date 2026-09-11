@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+
+set -Eeuo pipefail
+
+if (( $# != 2 )); then
+  echo 'Usage: scripts/image-platform <image-index.json> <linux/amd64|linux/arm64>' >&2
+  exit 2
+fi
+
+case "$2" in
+  linux/amd64 | linux/arm64) ;;
+  *) echo "image-platform: unsupported platform: $2" >&2; exit 1 ;;
+esac
+
+# An SBOM describes one runtime image, not every architecture in an OCI index.
+# Ignore BuildKit attestation manifests, which use unknown/unknown platforms.
+jq -er --arg platform "$2" '
+  [.manifests[] |
+    select((.platform.os + "/" + .platform.architecture) == $platform) |
+    .digest] |
+  if length != 1 then error("expected exactly one runtime manifest for " + $platform)
+  elif (.[0] | test("^sha256:[0-9a-f]{64}$") | not) then error("invalid image digest")
+  else .[0] end
+' "$1"

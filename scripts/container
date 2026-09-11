@@ -127,7 +127,8 @@ print_matrix() {
       {
         name: .name,
         file: .file,
-        platforms: (.platforms | join(","))
+        platforms: (.platforms | join(",")),
+        platform_list: .platforms
       }
     ]
   }' "${catalog_file}"

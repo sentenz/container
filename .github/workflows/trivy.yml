@@ -9,8 +9,6 @@ on:
   pull_request:
     branches:
       - main
-  release:
-    types: [created]
 
 permissions: {}
 
@@ -66,87 +64,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
         with:
           sarif_file: trivy-iac.sarif
-        continue-on-error: false
-
-  trivy-sbom-generation:
-    name: Trivy Action | SBOM Generation
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Generate CycloneDX SBOM
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
-        with:
-          scan-type: sbom-generate
-          scan-target: "."
-          format: cyclonedx
-          output: sbom.cdx.json
-          exit-code: "0"
-
-      - name: Generate SPDX SBOM
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
-        with:
-          scan-type: sbom-generate
-          scan-target: "."
-          format: spdx-json
-          output: sbom.spdx.json
-          exit-code: "0"
-
-      - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: sbom-files
-          path: |
-            sbom.cdx.json
-            sbom.spdx.json
-
-  trivy-sbom-publish:
-    name: Trivy Action | Publish SBOM
-    if: github.event_name == 'release'
-    needs: trivy-sbom-generation
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download SBOM artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sbom-files
-
-      - name: Publish SBOM to release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          files: |
-            sbom.cdx.json
-            sbom.spdx.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  trivy-sbom-scan:
-    name: Trivy Action | SBOM Scan
-    needs: trivy-sbom-generation
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Download SBOM artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: sbom-files
-
-      - name: Scan SBOM for vulnerabilities
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
-        with:
-          scan-type: sbom
-          scan-target: sbom.cdx.json
-          format: table
-          severity: HIGH,CRITICAL
         continue-on-error: false
 
   trivy-license-compliance:
