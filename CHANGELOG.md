@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1](https://github.com/sentenz/container/compare/1.0.0...1.0.1) (2026-09-11)
+
+### Bug Fixes
+
+* **ci:** consolidate and attest published image SBOMs ([#13](https://github.com/sentenz/container/issues/13)) ([1b648d5](https://github.com/sentenz/container/commit/1b648d50152c250d37a618673378d8288668f431))
+
 ## 1.0.0 (2026-09-10)
 
 ### Features
