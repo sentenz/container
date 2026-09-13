@@ -86,7 +86,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan Containerfiles
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/trivy@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           scan-type: config
           scan-target: containers
@@ -111,7 +111,7 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        uses: sentenz/actions/docker@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/docker@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           version: ci-${{ github.run_id }}-${{ github.run_attempt }}
           context: .
