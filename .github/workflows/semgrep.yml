@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Semgrep
-        uses: sentenz/actions/semgrep@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/semgrep@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           config: "auto"
           metrics: "auto"
