@@ -97,7 +97,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Generate image SBOM (CycloneDX)
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/trivy@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           scan-type: sbom-generate
           scan-target: ${{ inputs.image }}@${{ steps.platform.outputs.digest }}
@@ -106,7 +106,7 @@ jobs:
           exit-code: "0"
 
       - name: Generate image SBOM (SPDX)
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/trivy@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           scan-type: sbom-generate
           scan-target: ${{ inputs.image }}@${{ steps.platform.outputs.digest }}
@@ -144,7 +144,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Scan image SBOM for vulnerabilities
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/trivy@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           scan-type: sbom
           scan-target: sbom/${{ steps.platform.outputs.prefix }}.cdx.json

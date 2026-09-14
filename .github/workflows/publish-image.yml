@@ -48,7 +48,7 @@ jobs:
 
       - name: Build and publish image
         id: image
-        uses: sentenz/actions/docker@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/docker@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           version: ${{ inputs.version }}
           context: .
