@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Trivy Filesystem Scan
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/trivy@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           scan-type: fs
           scan-target: "."
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run Trivy Config Scan
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/trivy@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           scan-type: config
           scan-target: "."
@@ -78,7 +78,7 @@ jobs:
           persist-credentials: false
 
       - name: Run License Compliance Scan
-        uses: sentenz/actions/trivy@27b5bc872e2eb187ab306d29443bdf09683427a5 # 1.4.11
+        uses: sentenz/actions/trivy@c600775dda21753455e72c46d37d32b452c35817 # 1.5.0
         with:
           scan-type: fs
           scan-target: "."
