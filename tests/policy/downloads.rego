@@ -18,6 +18,8 @@ shell_lines(content) := [trim_space(line) |
 	trim_space(line) != ""
 ]
 
+wget_output_pattern := `(-O|--output-document)(=|[[:space:]]+)("[^"]+"|'[^']+'|[^[:space:]]+)`
+
 is_curl_command(line) if {
 	regex.match(`(^|[[:space:]])curl[[:space:]]`, line)
 }
@@ -56,7 +58,7 @@ download_targets contains target if {
 	is_shell_source
 	some line in shell_lines(input.content)
 	is_wget_command(line)
-	some match in regex.find_all_string_submatch_n(`(-O|--output-document)(=|[[:space:]]+)("[^"]+"|'[^']+'|[^[:space:]]+)`, line, -1)
+	some match in regex.find_all_string_submatch_n(wget_output_pattern, line, -1)
 	target := trim(match[3], `"'`)
 }
 
@@ -74,15 +76,15 @@ is_checksum_manifest(target) if {
 }
 
 is_checksum_manifest_for(target, manifest) if {
-	manifest == sprintf("%s.sha256", [target])
+	manifest == $"{target}.sha256"
 }
 
 is_checksum_manifest_for(target, manifest) if {
-	manifest == sprintf("%s.sha256sum", [target])
+	manifest == $"{target}.sha256sum"
 }
 
 is_checksum_manifest_for(target, manifest) if {
-	manifest == sprintf("%s.sha256sums", [target])
+	manifest == $"{target}.sha256sums"
 }
 
 path_basename(path) := parts[count(parts) - 1] if {
@@ -127,5 +129,5 @@ deny_download_verification contains msg if {
 	not is_checksum_manifest(target)
 	not verifies_download(target)
 
-	msg := sprintf("Downloaded artifact %q in %q must be verified against its own upstream SHA-256 manifest.", [target, input.path])
+	msg := $"Downloaded artifact '{target}' in '{input.path}' must be verified against its own upstream SHA-256 manifest."
 }

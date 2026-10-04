@@ -15,7 +15,7 @@ manager_pins_digests(manager) if {
 	some rule in object.get(input, "packageRules", [])
 	some configured_manager in object.get(rule, "matchManagers", [])
 	configured_manager == manager
-	object.get(rule, "pinDigests", false) == true
+	rule.pinDigests == true
 }
 
 # METADATA
@@ -30,5 +30,5 @@ deny_renovate_pinning contains msg if {
 	some manager in required_pin_managers
 	not manager_pins_digests(manager)
 
-	msg := sprintf("Renovate manager %q must set pinDigests to true.", [manager])
+	msg := $"Renovate manager '{manager}' must set pinDigests to true."
 }

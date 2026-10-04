@@ -1,0 +1,7 @@
+rules:
+  style:
+    external-reference:
+      level: ignore
+  testing:
+    test-outside-test-package:
+      level: ignore

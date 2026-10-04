@@ -44,9 +44,10 @@ deny_github_action_pinning contains msg if {
 	reference != ""
 	not is_local_action(reference)
 	not is_immutable_action(reference)
-	step_name := object.get(step, "name", sprintf("step %d", [step_index + 1]))
+	step_number := step_index + 1
+	step_name := object.get(step, "name", $"step {step_number}")
 
-	msg := sprintf("GitHub Action %q in job %q, step %q must use a full commit SHA.", [reference, job_name, step_name])
+	msg := $"GitHub Action '{reference}' in job '{job_name}', step '{step_name}' must use a full commit SHA."
 }
 
 deny_github_action_pinning contains msg if {
@@ -58,5 +59,5 @@ deny_github_action_pinning contains msg if {
 	not is_local_action(reference)
 	not is_immutable_action(reference)
 
-	msg := sprintf("Reusable workflow %q in job %q must use a full commit SHA.", [reference, job_name])
+	msg := $"Reusable workflow '{reference}' in job '{job_name}' must use a full commit SHA."
 }
