@@ -74,15 +74,15 @@ is_checksum_manifest(target) if {
 }
 
 is_checksum_manifest_for(target, manifest) if {
-	manifest == sprintf("%s.sha256", [target])
+	manifest == $"{target}.sha256"
 }
 
 is_checksum_manifest_for(target, manifest) if {
-	manifest == sprintf("%s.sha256sum", [target])
+	manifest == $"{target}.sha256sum"
 }
 
 is_checksum_manifest_for(target, manifest) if {
-	manifest == sprintf("%s.sha256sums", [target])
+	manifest == $"{target}.sha256sums"
 }
 
 path_basename(path) := parts[count(parts) - 1] if {
@@ -127,5 +127,5 @@ deny_download_verification contains msg if {
 	not is_checksum_manifest(target)
 	not verifies_download(target)
 
-	msg := sprintf("Downloaded artifact %q in %q must be verified against its own upstream SHA-256 manifest.", [target, input.path])
+	msg := $"Downloaded artifact '{target}' in '{input.path}' must be verified against its own upstream SHA-256 manifest."
 }

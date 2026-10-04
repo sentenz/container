@@ -44,7 +44,7 @@ deny_base_image_pinning contains msg if {
 	not is_internal_stage(image)
 	not is_immutable_image(image)
 
-	msg := sprintf("Container base image %q must be pinned to a full sha256 digest.", [image])
+	msg := $"Container base image '{image}' must be pinned to a full sha256 digest."
 }
 
 final_stage := max([command.Stage | some command in input]) if {
@@ -76,7 +76,7 @@ user_variable_name(value) := trim_prefix(value, "$") if {
 }
 
 arg_default(name, before_index) := value if {
-	prefix := sprintf("%s=", [name])
+	prefix := $"{name}="
 	indices := [index |
 		some index
 		command := input[index]
@@ -142,7 +142,7 @@ deny_runtime_user contains msg if {
 	contains(identity, "$")
 	not has_resolved_user_identity(user, last_user_index)
 
-	msg := sprintf("The final image stage user %q must resolve from a preceding ARG default.", [user])
+	msg := $"The final image stage user '{user}' must resolve from a preceding ARG default."
 }
 
 deny_runtime_user contains msg if {
@@ -153,5 +153,5 @@ deny_runtime_user contains msg if {
 	identity := resolved_user_identity(user, last_user_index)
 	is_root_user(identity)
 
-	msg := sprintf("The final image stage must not run as %q.", [user])
+	msg := $"The final image stage must not run as '{user}'."
 }
