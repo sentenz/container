@@ -76,8 +76,7 @@ user_variable_name(value) := trim_prefix(value, "$") if {
 arg_default(name, before_index) := value if {
 	prefix := $"{name}="
 	indices := [index |
-		some index
-		command := input[index]
+		some index, command in input
 		command.Cmd == "arg"
 		command.Stage == final_stage
 		index > final_stage_from_index
