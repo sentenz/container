@@ -18,6 +18,8 @@ shell_lines(content) := [trim_space(line) |
 	trim_space(line) != ""
 ]
 
+wget_output_pattern := `(-O|--output-document)(=|[[:space:]]+)("[^"]+"|'[^']+'|[^[:space:]]+)`
+
 is_curl_command(line) if {
 	regex.match(`(^|[[:space:]])curl[[:space:]]`, line)
 }
@@ -56,7 +58,6 @@ download_targets contains target if {
 	is_shell_source
 	some line in shell_lines(input.content)
 	is_wget_command(line)
-	wget_output_pattern := `(-O|--output-document)(=|[[:space:]]+)("[^"]+"|'[^']+'|[^[:space:]]+)`
 	some match in regex.find_all_string_submatch_n(wget_output_pattern, line, -1)
 	target := trim(match[3], `"'`)
 }
