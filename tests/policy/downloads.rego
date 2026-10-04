@@ -56,7 +56,8 @@ download_targets contains target if {
 	is_shell_source
 	some line in shell_lines(input.content)
 	is_wget_command(line)
-	some match in regex.find_all_string_submatch_n(`(-O|--output-document)(=|[[:space:]]+)("[^"]+"|'[^']+'|[^[:space:]]+)`, line, -1)
+	wget_output_pattern := `(-O|--output-document)(=|[[:space:]]+)("[^"]+"|\'[^\']+\'|[^[:space:]]+)`
+	some match in regex.find_all_string_submatch_n(wget_output_pattern, line, -1)
 	target := trim(match[3], `"'`)
 }
 

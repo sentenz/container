@@ -15,7 +15,7 @@ manager_pins_digests(manager) if {
 	some rule in object.get(input, "packageRules", [])
 	some configured_manager in object.get(rule, "matchManagers", [])
 	configured_manager == manager
-	object.get(rule, "pinDigests", false) == true
+	rule.pinDigests == true
 }
 
 # METADATA
